@@ -27,14 +27,44 @@ typedef struct {
 } Polyonym;
 
 /**
+ * Allocate memory for a polyonym with the given degree and coefficients.
+ * If the coefficients argument is NULL, memory is reserved for them but
+ * they are not initialized, so their values are undefined. Make sure to
+ * define them before using them when doing that.
+ * 
+ * Remember to free!
+*/
+Polyonym *init_poly(int deg, int *coeffs);
+
+/**
+ * Properly free up the memory that was allocated for the given polyonym.
+ * 
+ * This includes freeing the memory in which the coefficients were stored.
+*/
+void free_poly(Polyonym *p);
+
+/**
  * Print the polyonym that the given coefficients represent.
  * 
  * Leaves the cursor on the next line
 */
-void print_poly(Polyonym p);
+void print_poly(Polyonym *p);
 
 
 /**
  * Evaluate the given polyonym at the given point.
 */
-float evaluate_poly_at_x(Polyonym p, int x);
+float evaluate_poly_at_x(Polyonym *p, int x);
+
+/**
+ * Calculate the first derivative of the given polyonym and return
+ * it as a new polyonym.
+ * 
+ * This is done according to the differentiation rules, in an
+ * "analytic" way.
+ * 
+ * This also allocates memory for a new Polyonym, so remember to free
+ * that too.
+*/
+Polyonym *differentiate(Polyonym *p);
+
