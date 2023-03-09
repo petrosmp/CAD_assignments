@@ -50,7 +50,6 @@ void free_poly(Polyonym *p);
 */
 void print_poly(Polyonym *p);
 
-
 /**
  * Evaluate the given polyonym at the given point.
 */
@@ -67,4 +66,3 @@ double eval_at(Polyonym *p, double x);
  * that too.
 */
 Polyonym *differentiate(Polyonym *p);
-
