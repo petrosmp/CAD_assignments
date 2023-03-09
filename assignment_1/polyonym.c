@@ -25,7 +25,7 @@ void print_poly(Polyonym *p) {
     
     printf("The polyonym (of degree %d) is:", p->degree);
     for(int i=0; i<p->degree+1; i++) {
-        printf(" %dx^%d %c", p->coeffs[i], p->degree-i, i!=p->degree?p->coeffs[i]<0?'-':'+':'\n');
+        printf(" %dx^%d %c", abs(p->coeffs[i]), p->degree-i, i!=p->degree?p->coeffs[i+1]<0?'-':'+':'\n');
     }
 
 }
