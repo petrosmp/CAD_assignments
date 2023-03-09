@@ -30,12 +30,12 @@ void print_poly(Polyonym *p) {
 
 }
 
-float evaluate_poly_at_x(Polyonym *p, int x) {
+double eval_at(Polyonym *p, double x) {
 
-    float val = 0;
+    double val = 0;
 
     for(int i=0; i<p->degree+1; i++) {
-        val += p->coeffs[i]*(float)pow(x, p->degree-i);
+        val += p->coeffs[i]*pow(x, p->degree-i);
     }
 
     return val;

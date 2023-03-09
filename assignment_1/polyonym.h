@@ -54,7 +54,7 @@ void print_poly(Polyonym *p);
 /**
  * Evaluate the given polyonym at the given point.
 */
-float evaluate_poly_at_x(Polyonym *p, int x);
+double eval_at(Polyonym *p, double x);
 
 /**
  * Calculate the first derivative of the given polyonym and return
