@@ -1,5 +1,9 @@
 .vscode/
 assignment_1/a.out
+assignment_1/find_roots
 assignment_1/libpoly.so
 assignment_1/a.exe
+assignment_1/find_roots.exe
 assignment_1/libpoly.dll
+assignment_1/results.xlsx
+assignment_1/report.docx
