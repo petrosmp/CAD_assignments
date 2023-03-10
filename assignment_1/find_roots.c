@@ -94,7 +94,7 @@ void newton_raphson(Polynomial *p, double x0, int max_iter, int verbose) {
     if (found) {
         printf("Newton-Raphson converged to %f after %d iterations\n", x, iter+1);
     } else {
-        printf("Newton-Raphson did not manage to find a root after %d iterations. Final value: %fs\n", iter, x);
+        printf("Newton-Raphson did not manage to find a root after %d iterations. Final value of x: %f, where f(x)=%f\n", iter, x, eval_at(p, x));
     }
 }
 
@@ -117,6 +117,6 @@ void tangent(Polynomial *p, double x0, double delta, int max_iter, int verbose) 
     if (found) {
         printf("The tangent method converged to %f after %d iterations\n", x, iter+1);
     } else {
-        printf("The tangent method did not manage to find a root after %d iterations. Final value: %fs\n", iter, x);
+        printf("The tangent method did not manage to find a root after %d iterations. Final value of x: %f, where f(x)=%f\n", iter, x, eval_at(p, x));
     }
 }
