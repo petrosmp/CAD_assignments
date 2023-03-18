@@ -118,19 +118,40 @@ int str_to_subsys(char *str, Subsystem *s, int n) {
     s->_inputc = str_to_list(_inputs, &(s->inputs), IN_OUT_DELIM);
     s->_outputc = str_to_list(_outputs, &(s->outputs), IN_OUT_DELIM);
 
-    // printfs for testing
-    printf("The name is: [%s]\n", name);
-    printf("Read %d inputs:", s->_inputc);
-    for(int i=0; i<s->_inputc; i++) {
-        printf(" [%s]", s->inputs[i]);
-    }
-    printf("\n");
-    printf("Read %d outputs:", s->_outputc);
-    for(int i=0; i<s->_outputc; i++) {
-        printf(" [%s]", s->outputs[i]);
-    }
-    printf("\n");
+    return 0;
+}
 
+int read_subsystem_from_file(char *filename, Subsystem **s) {
+    
+    if (filename == NULL || (*s)==NULL) {
+        return NARG;
+    }
+    
+    char *line = NULL;  // no need to malloc it, getline() does that for us (and also reallocs if needed) 
+
+    int nread = 0;
+    int offset = 0;
+    size_t len = 0;
+
+    // there is actually no need for a loop for the time being but it doesn't hurt
+    while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
+
+        // if a line contains a subsystem declaration
+        if((starts_with(line, COMP_DESIGNATION))) {
+
+            // remove the newline character
+            char *nl = strpbrk(line, "\n");
+            *nl = '\0';
+
+            // parse the line into s
+            str_to_subsys(line, *s, nread);
+        }
+
+        // move the cursor
+        offset += nread;
+    }
+
+    free(line); // this should be done here tho
 
     return 0;
 }
