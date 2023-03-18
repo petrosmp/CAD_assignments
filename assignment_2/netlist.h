@@ -3,18 +3,17 @@
  * component libraries (containing gates or subsystems) cleaner
  * and allow for code reuse and easy modification.
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "str_util.h"
-
 
 #define COMP_DESIGNATION "COMP "    /* The word that signifies that a line contains a component */
 #define INPUT_DESIGNATION "IN: "    /* The word that signifies that the next stuff is the inputs of the component. */
 #define OUTPUT_DESIGNATION "OUT: "  /* The word that signifies that the next stuff is the outputs of the component. */
 #define IN_OUT_DELIM ", "           /* The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM ",", the outputs will be: A,B,C */
 #define DEFAULT_DELIM " ; "         /* The delimiter that is used by default to separate fields. */
-
 
 /**
  * A gate has a variable number of inputs but only one output. It is

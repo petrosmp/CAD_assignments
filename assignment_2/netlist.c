@@ -3,22 +3,36 @@
 void free_subsystem(Subsystem *s) {
 
     // free inputs
-    for(int i=0; i<s->_inputc; i++) {
-        free(s->inputs[i]);
+    if (s->inputs != NULL) {
+        for(int i=0; i<s->_inputc; i++) {
+            if (s->inputs[i] != NULL) {
+                free(s->inputs[i]);
+            }
+        }
+        free(s->inputs);
     }
-    free(s->inputs);
 
     // free outputs
-    for(int i=0; i<s->_outputc; i++) {
-        free(s->outputs[i]);
+    if (s->outputs != NULL) {
+        for(int i=0; i<s->_outputc; i++) {
+            if (s->outputs[i] != NULL) {
+                free(s->outputs[i]);
+            }
+        }
+        free(s->outputs);
     }
-    free(s->outputs);
 
-    // free name?
+    // free name
+    if (s->name != NULL) {
+        free(s->name);
+    }
 
-    // free source?
+    // free source
+    if (s->source != NULL) {
+        free(s->source);
+    }
 
-    // free s
+    // free s itself
     free(s);
 }
 
@@ -32,19 +46,19 @@ int subsys_to_str(Subsystem* s, char* str, int n) {
     int _en;
 
     // write the first word, indicating that this is a component
-    if(_en = write_at(str, COMP_DESIGNATION, offset, strlen(COMP_DESIGNATION))) return _en;
+    if( (_en = write_at(str, COMP_DESIGNATION, offset, strlen(COMP_DESIGNATION))) ) return _en;
     offset += strlen(COMP_DESIGNATION);
 
     // write the name of the component
-    if(_en = write_at(str, s->name, offset, strlen(s->name))) return _en;
+    if( (_en = write_at(str, s->name, offset, strlen(s->name))) ) return _en;
     offset += strlen(s->name);
 
     // write the default delimiter
-    if(_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) return _en;
+    if( (_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) ) return _en;
     offset += strlen(DEFAULT_DELIM);
 
     // write the input designation
-    if(_en = write_at(str, INPUT_DESIGNATION, offset, strlen(INPUT_DESIGNATION))) return _en;
+    if( (_en = write_at(str, INPUT_DESIGNATION, offset, strlen(INPUT_DESIGNATION))) ) return _en;
     offset += strlen(INPUT_DESIGNATION);
 
     // write the inputs, separated by delimiter
@@ -54,11 +68,11 @@ int subsys_to_str(Subsystem* s, char* str, int n) {
     offset += list_bytes;
 
     // write the default delimiter
-    if(_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) return _en;
+    if( (_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) ) return _en;
     offset += strlen(DEFAULT_DELIM);
 
     // write the output designation
-    if(_en = write_at(str, OUTPUT_DESIGNATION, offset, strlen(OUTPUT_DESIGNATION))) return _en;
+    if( (_en = write_at(str, OUTPUT_DESIGNATION, offset, strlen(OUTPUT_DESIGNATION))) ) return _en;
     offset += strlen(OUTPUT_DESIGNATION);
 
     // write the outputs, separated by delimiter
@@ -70,6 +84,7 @@ int subsys_to_str(Subsystem* s, char* str, int n) {
     // manually null terminate the string
     str[offset] = '\0';
 
+    return 0;
 }
 
 int str_to_subsys(char *str, Subsystem *s, int n) {
@@ -99,70 +114,11 @@ int str_to_subsys(char *str, Subsystem *s, int n) {
     // parse the input and output lists
     s->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
     s->outputs = NULL;
-    int _inputc = 0;
-    int _outputc = 0;
-    char *cur;
 
-    while(_inputs != NULL) {
-
-        // get the name of the input
-        cur = split(&_inputs, IN_OUT_DELIM);
-        
-        // allocate memory for the entry in the input table
-        s->inputs = realloc(s->inputs, sizeof(char*)*(_inputc+1));
-        printf("allocated %d bytes for inputs\n",  sizeof(char*)*(_inputc+1));
-        if (s->inputs == NULL) {
-            fprintf(stderr, "malloc() error! not enough memory!\n");
-            exit(-1);
-        }
-
-        // allocate memory for the input's name (plus a null byte)
-        s->inputs[_inputc] = malloc(strlen(cur)+1);
-        if (s->inputs[_inputc] == NULL) {
-            fprintf(stderr, "malloc() error! not enough memory!\n");
-            exit(-1);
-        }
-
-        // copy the name of the input into the table
-        strncpy(s->inputs[_inputc], cur, strlen(cur)+1);  // strcpy will insert null bytes in empty space
-        
-        _inputc++;
-    }
-
-    s->_inputc = _inputc;
-
-    while(_outputs != NULL) {
-
-        // get the name of the output
-        cur = split(&_outputs, IN_OUT_DELIM);
-        
-        // allocate memory for the entry in the output table
-        s->outputs = realloc(s->outputs, sizeof(char*)*(_outputc+1));
-        printf("allocated %d bytes for outputs\n",  sizeof(char*)*(_outputc+1));
-
-        if (s->outputs == NULL) {
-            fprintf(stderr, "malloc() error! not enough memory!\n");
-            exit(-1);
-        }
-
-        // allocate memory for the output's name (plus a null byte)
-        s->outputs[_outputc] = malloc(strlen(cur)+1);
-        if (s->outputs[_outputc] == NULL) {
-            fprintf(stderr, "malloc() error! not enough memory!\n");
-            exit(-1);
-        }
-
-        // copy the name of the output into the table
-        strncpy(s->outputs[_outputc], cur, strlen(cur)+1);  // strcpy will insert null bytes in empty space
-        
-        _outputc++;
-    }
-
-    s->_outputc = _outputc;
-
+    s->_inputc = str_to_list(_inputs, &(s->inputs), IN_OUT_DELIM);
+    s->_outputc = str_to_list(_outputs, &(s->outputs), IN_OUT_DELIM);
 
     // printfs for testing
-
     printf("The name is: [%s]\n", name);
     printf("Read %d inputs:", s->_inputc);
     for(int i=0; i<s->_inputc; i++) {
