@@ -98,4 +98,4 @@ int starts_with(char *s1, char *s2);
  * split() will be called on str, so it will be modified. Keeping a
  * pointer to it (for example to free it later) is suggested.
 */
-int str_to_list(char *str, char **l, char *delim);
+int str_to_list(char *str, char ***l, char *delim);

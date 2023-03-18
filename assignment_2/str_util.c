@@ -1,9 +1,4 @@
-/**
- * String operations to make everything easier.
- * 
- * Also a bit of file stuff.
-*/
-
+#include <stdlib.h>
 #include "str_util.h"
 
 int write_at(char* dest, char* src, int offset, int n) {
@@ -47,7 +42,7 @@ int write_list_at(int lc, char** l, char* delim, char* dest, int offset, int n, 
         if ((_offset-offset) + strlen(l[i]) > n) return NES;
 
         // write the element
-        if(_en=write_at(dest, l[i], _offset, strlen(l[i]))) return _en;
+        if( (_en=write_at(dest, l[i], _offset, strlen(l[i]))) ) return _en;
         _offset += strlen(l[i]);
         *b_w = _offset-offset;
 
@@ -56,7 +51,7 @@ int write_list_at(int lc, char** l, char* delim, char* dest, int offset, int n, 
 
         // write the delim if needed
         if (i != lc-1) {
-            if(_en=write_at(dest, delim, _offset, strlen(delim))) return _en;
+            if( (_en=write_at(dest, delim, _offset, strlen(delim))) ) return _en;
             _offset += strlen(delim);
             *b_w = _offset-offset;
         }
@@ -114,7 +109,7 @@ int starts_with(char *s1, char *s2) {
     return 0;
 }
 
-int str_to_list(char *str, char **l, char *delim) {
+int str_to_list(char *str, char ***l, char *delim) {
 
     char *cur;
     int i=0;
@@ -125,22 +120,22 @@ int str_to_list(char *str, char **l, char *delim) {
         cur = split(&str, delim);
         
         // allocate memory for the entry in the output table
-        l = realloc(l, sizeof(char*)*(i+1));
-        if (l == NULL) {
+        (*l) = realloc((*l), sizeof(char*)*(i+1));
+        if ((*l) == NULL) {
             fprintf(stderr, "malloc() error! not enough memory!\n");
             exit(-1);
         }
 
         // allocate memory for the output's name (plus a null byte)
-        l[i] = malloc(strlen(cur)+1);
-        if (l[i] == NULL) {
+        (*l)[i] = malloc(strlen(cur)+1);
+        if ((*l)[i] == NULL) {
             fprintf(stderr, "malloc() error! not enough memory!\n");
             exit(-1);
         }
 
         // copy the name of the output into the table
-        strncpy(l[i], cur, strlen(cur)+1);  // strcpy will insert null bytes in empty space
-        
+        strncpy((*l)[i], cur, strlen(cur)+1);  // strcpy will insert null bytes in empty space
+
         i++;
     }
 
