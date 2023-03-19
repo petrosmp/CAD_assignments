@@ -84,7 +84,9 @@ int str_to_subsys(char *str, Subsystem *s, int n);
  * Parse the given file and insert the information it contains into the
  * given subsystem.
  * 
- * For the time being the file is assumed to only have 1 subsystem defined
+ * For the time being the file is assumed to have exactly 1 subsystem defined
  * in it (if there are more, there may be memory leaks or undefined behavior).
+ * 
+ * Also sets the subsystem's 'source' to the given filename.
 */
 int read_subsystem_from_file(char *filename, Subsystem **s);

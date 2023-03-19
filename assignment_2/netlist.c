@@ -117,6 +117,8 @@ int str_to_subsys(char *str, Subsystem *s, int n) {
 
     s->_inputc = str_to_list(_inputs, &(s->inputs), IN_OUT_DELIM);
     s->_outputc = str_to_list(_outputs, &(s->outputs), IN_OUT_DELIM);
+    s->name = malloc(strlen(name)+1);
+    strncpy(s->name, name, strlen(name)+1);
 
     return 0;
 }
@@ -152,6 +154,10 @@ int read_subsystem_from_file(char *filename, Subsystem **s) {
     }
 
     free(line); // this should be done here tho
+
+    // allocate and set s->source
+    (*s)->source = malloc(strlen(filename)+1);
+    strncpy((*s)->source, filename, strlen(filename)+1);
 
     return 0;
 }
