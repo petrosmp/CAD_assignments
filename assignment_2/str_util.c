@@ -134,7 +134,7 @@ int str_to_list(char *str, char ***l, char *delim) {
         }
 
         // copy the name of the output into the table
-        strncpy((*l)[i], cur, strlen(cur)+1);  // strcpy will insert null bytes in empty space
+        strncpy((*l)[i], cur, strlen(cur)+1);  // strncpy will insert null bytes in empty space
 
         i++;
     }
