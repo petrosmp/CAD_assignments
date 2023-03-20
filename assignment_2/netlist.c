@@ -38,6 +38,14 @@ void free_subsystem(Subsystem *s) {
 
 int subsys_to_str(Subsystem* s, char* str, int n) {
 
+    /*
+        strncpy could easily be used to do each part of this, but
+        it does not have an error return value so even though we
+        would be sure that no buffer overflows have occured, we
+        would not know whether the copying was completed properly
+        or not. Therefore we create write_at().
+    */
+
     if (s==NULL || str==NULL) {
         return NARG;
     }
@@ -134,6 +142,7 @@ int read_subsystem_from_file(char *filename, Subsystem **s) {
     int nread = 0;
     int offset = 0;
     size_t len = 0;
+    int _en;
 
     // there is actually no need for a loop for the time being but it doesn't hurt
     while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
@@ -141,23 +150,76 @@ int read_subsystem_from_file(char *filename, Subsystem **s) {
         // if a line contains a subsystem declaration
         if((starts_with(line, COMP_DESIGNATION))) {
 
-            // remove the newline character
+            // find the newline character and replace it with a null byte
             char *nl = strpbrk(line, "\n");
             *nl = '\0';
 
             // parse the line into s
-            str_to_subsys(line, *s, nread);
+            if ( (_en=str_to_subsys(line, *s, nread)) ) return _en;
         }
 
         // move the cursor
         offset += nread;
     }
 
-    free(line); // this should be done here tho
+    free(line);
 
     // allocate and set s->source
     (*s)->source = malloc(strlen(filename)+1);
     strncpy((*s)->source, filename, strlen(filename)+1);
+
+    return 0;
+}
+
+void free_component(Component *c) {
+
+    // free inputs
+    if (c->inputs != NULL) {
+        for(int i=0; i<c->_inputc; i++) {
+            if (c->inputs[i] != NULL) {
+                free(c->inputs[i]);
+            }
+        }
+        free(c->inputs);
+    }
+}
+
+int comp_to_str(Component *c, char *str, int n) {
+
+    int offset = 0;
+    int _en;
+
+    if (c==NULL || str==NULL) {
+        return NARG;
+    }
+
+    // write the ID prefix
+    if ( (_en=write_at(str, COMP_ID_PREFIX, offset, strlen(COMP_ID_PREFIX))) ) return _en;
+    offset += strlen(COMP_ID_PREFIX);
+
+    // write the component's ID
+    offset += snprintf(str+offset, n-offset, "%d ", c->id)-1;
+    
+    // write the delimiter
+    if ( (_en=write_at(str, COMP_DELIM, offset, strlen(COMP_DELIM))) ) return _en;
+    offset += strlen(COMP_DELIM);
+
+    // write the type of the component
+    if ( (_en=write_at(str, c->standard->name, offset, strlen(c->standard->name))) ) return _en;
+    offset += strlen(c->standard->name);
+
+    // write the delimiter
+    if ( (_en=write_at(str, COMP_DELIM, offset, strlen(COMP_DELIM))) ) return _en;
+    offset += strlen(COMP_DELIM);
+
+    // write the names of the inputs, separated by a delimiter
+    int list_bytes = 0;
+    _en = write_list_at(c->_inputc, c->inputs, IN_OUT_DELIM, str, offset, n, &list_bytes);
+    if (_en) return _en;
+    offset += list_bytes;
+
+    // manually null terminate the string
+    str[offset] = '\0';
 
     return 0;
 }
