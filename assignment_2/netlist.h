@@ -138,6 +138,11 @@ int str_to_subsys_ref(char *str, Subsystem *s, int n);
  * Also sets the subsystem's 'source' to the given filename and its type
  * to REFERENCE.
  * 
+ * Returns:
+ *  - 0 on success
+ *  - NES on failure because of not enough space
+ *  - NARG on failure because of null arguments.
+ * 
  * *see the definition of subsystem struct for more
  * 
  * NOTE:
