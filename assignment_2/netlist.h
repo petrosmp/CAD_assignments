@@ -177,6 +177,7 @@ int comp_to_str(Component *c, char *str, int n);
  * with all its components and output mappings.
  * 
  * The mode argument can be used to control the mode in which the file is opened
- * (it is passed directly to fopen).
+ * (it is passed directly to fopen). If mode = append (starts with "a"), a newline
+ * is written to the file before the netlist to separate it from the previous one(s).
 */
 int netlist_to_file(Subsystem *s, char *filename, char *mode);

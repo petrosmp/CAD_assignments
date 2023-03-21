@@ -268,6 +268,9 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
         exit(-1);
     }
 
+    // if mode = append, write an extra newline to separate the netlists
+    if (starts_with(mode, "a")) fprintf(fp, "\n");
+
     // write the declaration line
     char *line = malloc(MAX_LINE_LEN);
     int _en;
