@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "netlist.h"
-#include "str_util.h"
 
 #define SUBSYSTEM_LIB_FILENAME "subsystem.lib"
 #define OUTPUT_FILENAME "netlist.txt"

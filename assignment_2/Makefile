@@ -7,7 +7,7 @@ netlist: netlist.h netlist.c libstr.so
 	gcc -Wall -shared -fpic -o libnetlist.so -L. -Wl,-rpath=. $(word 2,$^) -lstr -g
 
 custom_full_adder: custom_full_adder.c
-	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lnetlist -lstr -g
+	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lnetlist -g
 
 clean:
 	rm -f libstr.so
