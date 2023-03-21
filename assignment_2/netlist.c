@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "netlist.h"
 
 void free_subsystem(Subsystem *s) {
@@ -32,11 +33,31 @@ void free_subsystem(Subsystem *s) {
         free(s->source);
     }
 
+    // free component list
+    if (s->components != NULL) {
+        for (int i=0; i<s->_componentc; i++) {
+            if (s->components[i] != NULL) {
+                free_component(s->components[i]);
+            }
+        }
+        free(s->components);
+    }
+
+    // free output mapping list
+    if (s->output_mappings != NULL) {
+        for (int i=0; i<s->_outputc; i++) {
+            if (s->output_mappings[i] != NULL) {
+                free(s->output_mappings[i]);
+            }
+        }
+        free(s->output_mappings);
+    }
+
     // free s itself
     free(s);
 }
 
-int subsys_to_str(Subsystem* s, char* str, int n) {
+int subsys_to_ref_str(Subsystem* s, char* str, int n) {
 
     /*
         strncpy could easily be used to do each part of this, but
@@ -53,11 +74,11 @@ int subsys_to_str(Subsystem* s, char* str, int n) {
     int offset = 0;
     int _en;
 
-    // write the first word, indicating that this is a component
+    // write the first word, indicating that this is a subsystem
     if( (_en = write_at(str, COMP_DESIGNATION, offset, strlen(COMP_DESIGNATION))) ) return _en;
     offset += strlen(COMP_DESIGNATION);
 
-    // write the name of the component
+    // write the name of the subsystem
     if( (_en = write_at(str, s->name, offset, strlen(s->name))) ) return _en;
     offset += strlen(s->name);
 
@@ -95,7 +116,7 @@ int subsys_to_str(Subsystem* s, char* str, int n) {
     return 0;
 }
 
-int str_to_subsys(char *str, Subsystem *s, int n) {
+int str_to_subsys_ref(char *str, Subsystem *s, int n) {
 
     // any line declaring a subsystem starts with COMP_DESIGNATION which we ignore
     int offset = strlen(COMP_DESIGNATION);
@@ -131,7 +152,7 @@ int str_to_subsys(char *str, Subsystem *s, int n) {
     return 0;
 }
 
-int read_subsystem_from_file(char *filename, Subsystem **s) {
+int read_ref_subsystem_from_file(char *filename, Subsystem **s) {
     
     if (filename == NULL || (*s)==NULL) {
         return NARG;
@@ -155,7 +176,7 @@ int read_subsystem_from_file(char *filename, Subsystem **s) {
             *nl = '\0';
 
             // parse the line into s
-            if ( (_en=str_to_subsys(line, *s, nread)) ) return _en;
+            if ( (_en=str_to_subsys_ref(line, *s, nread)) ) return _en;
         }
 
         // move the cursor
@@ -167,6 +188,11 @@ int read_subsystem_from_file(char *filename, Subsystem **s) {
     // allocate and set s->source
     (*s)->source = malloc(strlen(filename)+1);
     strncpy((*s)->source, filename, strlen(filename)+1);
+
+    // set s->type and functional subsystem fields
+    (*s)->type = REFERENCE;
+    (*s)->components = NULL;
+    (*s)->output_mappings = NULL;
 
     return 0;
 }
@@ -182,6 +208,9 @@ void free_component(Component *c) {
         }
         free(c->inputs);
     }
+
+    // free c itself
+    free(c);
 }
 
 int comp_to_str(Component *c, char *str, int n) {
@@ -220,6 +249,50 @@ int comp_to_str(Component *c, char *str, int n) {
 
     // manually null terminate the string
     str[offset] = '\0';
+
+    return 0;
+}
+
+int netlist_to_file(Subsystem *s, char *filename, char *mode) {
+
+    if (s==NULL || filename==NULL || mode==NULL) {
+        return NARG;
+    }
+
+    // open the file
+    FILE *fp;
+    fp = fopen(filename, mode);
+    if (fp == NULL) {
+        perror("fopen");
+        exit(-1);
+    }
+
+    // write the declaration line
+    char *line = malloc(MAX_LINE_LEN);
+    int _en;
+    if ( (_en=subsys_to_ref_str(s, line, MAX_LINE_LEN)) ) return _en;
+    fprintf(fp, "%s\n", line);
+
+    // write the "BEGIN NETLIST" line
+    fprintf(fp, "BEGIN %s NETLIST\n", s->name);
+
+    // write the components
+    for (int i=0; i<s->_componentc; i++) {
+        if ( (_en=comp_to_str(s->components[i], line, MAX_LINE_LEN)) ) return _en;
+        fprintf(fp, "%s\n", line);
+    }
+
+    // write the output mappings
+    for (int i=0; i<s->_outputc; i++) {
+        fprintf(fp, "%s = %s\n", s->outputs[i], s->output_mappings[i]);
+    }
+
+    // write the "END NETLIST" line
+    fprintf(fp, "END %s NETLIST\n", s->name);
+
+    // cleanup
+    fclose(fp);
+    free(line);
 
     return 0;
 }
