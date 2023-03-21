@@ -13,3 +13,4 @@ clean:
 	rm -f libstr.so
 	rm -f libnetlist.so
 	rm -f custom_full_adder
+	rm -f netlist.txt
