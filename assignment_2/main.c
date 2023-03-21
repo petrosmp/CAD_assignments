@@ -23,14 +23,30 @@ int main() {
 
     // load the single bit full adder reference from the library
     Subsystem *FA_reference = malloc(sizeof(Subsystem)); 
-    read_ref_subsystem_from_file(SUBSYSTEM_LIB_FILENAME, &FA_reference);
+    if ( read_ref_subsystem_from_file(SUBSYSTEM_LIB_FILENAME, &FA_reference) ) {
+        fprintf(stderr, "There was an error while reading the library file!\n");
+        free_subsystem(FA_reference);
+        exit(1);
+    }
 
     // create the n-bit full adder (functional) subsystem
     Subsystem *nbit_full_adder = malloc(sizeof(Subsystem));
-    create_nbit_full_adder(nbits, &nbit_full_adder, FA_reference);
+    if ( create_nbit_full_adder(nbits, &nbit_full_adder, FA_reference) ) {
+        fprintf(stderr, "There was an error while creating the %d-bit full adder!\n", nbits);
+        free_subsystem(FA_reference);
+        free_subsystem(nbit_full_adder);
+        exit(1);
+    }
 
     // write the netlist to the file
-    netlist_to_file(nbit_full_adder, OUTPUT_FILENAME, "w");
+    if ( netlist_to_file(nbit_full_adder, OUTPUT_FILENAME, "w") ) {
+        fprintf(stderr, "There was an error while writing the %d-bit full adder netlist to the file!\n", nbits);
+        free_subsystem(FA_reference);
+        free_subsystem(nbit_full_adder);
+        exit(1);
+    }
+
+    printf("Netlist file created successfully: %s\n", OUTPUT_FILENAME);
 
     // cleanup
     free_subsystem(nbit_full_adder);
@@ -56,6 +72,7 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
     /*
         Set the fields of the n-bit full adder
     */
+
     // set the name
     (*n_bit_fa)->name = malloc(20);
     snprintf((*n_bit_fa)->name, 20, "FULL_ADDER%d", n);
@@ -109,7 +126,7 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
         // set the input mappings of each component:
 
         // 1) allocate memory for the list
-        (*n_bit_fa)->components[i]->_inputc = 3;
+        (*n_bit_fa)->components[i]->_inputc = (*n_bit_fa)->components[i]->standard->_inputc;
         (*n_bit_fa)->components[i]->inputs = malloc(sizeof(char*) * (*n_bit_fa)->components[i]->standard->_inputc);
 
         // 2) allocate memory for each input mapping
@@ -125,13 +142,11 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
             // for the first full adder, Cin is the circuit's Cin
             snprintf((*n_bit_fa)->components[i]->inputs[2], MAX_INPUT_LEN, "Cin");
         } else {
-            // For the rest, Cin is the Cout of the previous full adder. (The name "Cout" is taken from the full adder's reference)
+            // for the rest, Cin is the Cout of the previous full adder
             snprintf(
                 (*n_bit_fa)->components[i]->inputs[2],
-                MAX_INPUT_LEN,
-                "%s%d_%s",
-                COMP_ID_PREFIX,
-                (*n_bit_fa)->components[i-1]->id, (*n_bit_fa)->components[i-1]->standard->outputs[1]
+                MAX_INPUT_LEN, "%s%d_%s",
+                COMP_ID_PREFIX, (*n_bit_fa)->components[i-1]->id, (*n_bit_fa)->components[i-1]->standard->outputs[1]
             );
         }
     }
