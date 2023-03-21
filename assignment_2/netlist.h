@@ -1,19 +1,19 @@
 /**
  * Custom set of structures and functions that make working with
- * component libraries (containing gates or subsystems) cleaner
+ * component libraries (only containing subsystems) cleaner
  * and allow for code reuse and easy modification.
 */
 
 #include "str_util.h"
 
-#define COMP_DESIGNATION "COMP "    /* The word that signifies that a line contains a component */
-#define INPUT_DESIGNATION "IN: "    /* The word that signifies that the next stuff is the inputs of the component. */
-#define OUTPUT_DESIGNATION "OUT: "  /* The word that signifies that the next stuff is the outputs of the component. */
-#define IN_OUT_DELIM ", "           /* The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM ",", the outputs will be: A,B,C */
-#define DEFAULT_DELIM " ; "         /* The delimiter that is used by default to separate fields. */
+#define DECL_DESIGNATION "COMP "    /* The word that signifies that a line declares a subsystem */
+#define INPUT_DESIGNATION "IN: "    /* The word that signifies that the next part of a string is the inputs of the subsystem. */
+#define OUTPUT_DESIGNATION "OUT: "  /* The word that signifies that the next part of a string is the outputs of the subsystem. */
+#define IN_OUT_DELIM ", "           /* The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
+#define GENERAL_DELIM " ; "         /* The delimiter that separates fields. */
 #define COMP_ID_PREFIX "U"          /* The prefix of every component id. When printing the a component c, COMP_ID_PREFIX<c.id> will be printed */
 #define COMP_DELIM  " "             /* The delimiter separating the attributes of a component */
-#define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist */
+#define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist file */
 
 
 /**
@@ -23,8 +23,7 @@
  * subsystems. This is a way to designate what kind of subsystem each instance of
  * the struct is, so it can be handled accordingly.
  * 
- * See the declaration of subsystem for explanation of the types.
- *  
+ * See the declaration of subsystem for an explanation of the types.
 */
 enum SUBSYSTEM_TYPE {
 	REFERENCE,  /* Only contains information regarding inputs, outputs, name and source file */
@@ -42,6 +41,9 @@ enum SUBSYSTEM_TYPE {
  *        when creating an instance of a subsystem the implementation of which is already known
  *        (e.g. it's implemented in a library). It only contains information regarding the number
  *        and names of the inputs and the name of the circuit.
+ * 
+ * TODO: Would it be better design if those 2 were different structs? It would save ~32 bytes per
+ *       reference subsystem and avoid cyclic dependencies
 */
 typedef struct subsystem{
     char* name;                     /* The name of this subsystem (ASCII, human readable). */
@@ -50,7 +52,7 @@ typedef struct subsystem{
     int _outputc;                   /* The number of outputs the subsystem has (mainly for internal use). */
     char** outputs;                 /* The names of the outputs of the subsystem. */
     char* source;                   /* The name of the file that the subsystem was defined in. */
-    enum SUBSYSTEM_TYPE type;       /* Whether this is a functional subsystem or a reference one*/
+    enum SUBSYSTEM_TYPE type;       /* Whether this is a functional subsystem or a reference one */
     int _componentc;                /* The number of components the subsystem is made of, (if it is a functional one) */
     struct component **components;  /* The list of the subsystem components, (if it is a functional one) */
     char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs, (if it is a functional one) */
@@ -71,7 +73,6 @@ typedef struct subsystem{
  * END FULL_ADDER2 NETLIST
 */
 typedef struct component {
-
     int id;                 /* The unique ID of the component */
     Subsystem *standard;    /* The subsystem that the component is an instance of */
     int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
@@ -107,8 +108,8 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n);
  * that subsystem too.
  * 
  * The string is assumed to be of the following format (no newlines):
- *  <COMP_DESGNATION><DEFAULT_DELIM><name><DEFAULT_DELIM><INPUT_DESIGNATION>
- *  <input list, separated by INOUT_DELIM><DEFAULT_DELIM><OUTPUT_DESIGNATION>
+ *  <COMP_DESGNATION><GENERAL_DELIM><name><GENERAL_DELIM><INPUT_DESIGNATION>
+ *  <input list, separated by INOUT_DELIM><GENERAL_DELIM><OUTPUT_DESIGNATION>
  *  <output list, separated by INOUT_DELIM>
  * 
  * Does not allocate memory for the subsystem itself, but does for every input
@@ -150,7 +151,7 @@ int read_ref_subsystem_from_file(char *filename, Subsystem **s);
  * Properly free up the memory allocated for component c and its
  * members.
  * 
- * DOES NOT FREE the subsystem pointed to by c.standard.
+ * DOES NOT FREE the subsystem pointed to by c->standard.
 */
 void free_component(Component *c);
 

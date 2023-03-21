@@ -60,11 +60,11 @@ void free_subsystem(Subsystem *s) {
 int subsys_to_ref_str(Subsystem* s, char* str, int n) {
 
     /*
-        strncpy could easily be used to do each part of this, but
+        strncpy could be used to do each part of this, but
         it does not have an error return value so even though we
         would be sure that no buffer overflows have occured, we
         would not know whether the copying was completed properly
-        or not. Therefore we create write_at().
+        or not. This is why write_at() was created.
     */
 
     if (s==NULL || str==NULL) {
@@ -75,16 +75,16 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n) {
     int _en;
 
     // write the first word, indicating that this is a subsystem
-    if( (_en = write_at(str, COMP_DESIGNATION, offset, strlen(COMP_DESIGNATION))) ) return _en;
-    offset += strlen(COMP_DESIGNATION);
+    if( (_en = write_at(str, DECL_DESIGNATION, offset, strlen(DECL_DESIGNATION))) ) return _en;
+    offset += strlen(DECL_DESIGNATION);
 
     // write the name of the subsystem
     if( (_en = write_at(str, s->name, offset, strlen(s->name))) ) return _en;
     offset += strlen(s->name);
 
     // write the default delimiter
-    if( (_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) ) return _en;
-    offset += strlen(DEFAULT_DELIM);
+    if( (_en = write_at(str, GENERAL_DELIM, offset, strlen(GENERAL_DELIM))) ) return _en;
+    offset += strlen(GENERAL_DELIM);
 
     // write the input designation
     if( (_en = write_at(str, INPUT_DESIGNATION, offset, strlen(INPUT_DESIGNATION))) ) return _en;
@@ -97,8 +97,8 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n) {
     offset += list_bytes;
 
     // write the default delimiter
-    if( (_en = write_at(str, DEFAULT_DELIM, offset, strlen(DEFAULT_DELIM))) ) return _en;
-    offset += strlen(DEFAULT_DELIM);
+    if( (_en = write_at(str, GENERAL_DELIM, offset, strlen(GENERAL_DELIM))) ) return _en;
+    offset += strlen(GENERAL_DELIM);
 
     // write the output designation
     if( (_en = write_at(str, OUTPUT_DESIGNATION, offset, strlen(OUTPUT_DESIGNATION))) ) return _en;
@@ -118,10 +118,11 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n) {
 
 int str_to_subsys_ref(char *str, Subsystem *s, int n) {
 
-    // any line declaring a subsystem starts with COMP_DESIGNATION which we ignore
-    int offset = strlen(COMP_DESIGNATION);
+    // any line declaring a subsystem starts with DECL_DESIGNATION which we ignore
+    int offset = strlen(DECL_DESIGNATION);
 
-    /* because split alters its first argument, and we need to keep
+    /* 
+       because split alters its first argument, and we need to keep
        the original address of str so we can free it, we use an internal
        variable to pass to split
     */
@@ -132,9 +133,9 @@ int str_to_subsys_ref(char *str, Subsystem *s, int n) {
     // so we create what we need (see split()).
 
     // get the fields of the line
-    char *name        = split(&_str, DEFAULT_DELIM);
-    char *raw_inputs  = split(&_str, DEFAULT_DELIM);
-    char *raw_outputs = split(&_str, DEFAULT_DELIM);
+    char *name        = split(&_str, GENERAL_DELIM);
+    char *raw_inputs  = split(&_str, GENERAL_DELIM);
+    char *raw_outputs = split(&_str, GENERAL_DELIM);
 
     // get the input and output lists (get rid of the designations)
     char *_inputs = raw_inputs+strlen(INPUT_DESIGNATION);
@@ -168,14 +169,14 @@ int read_ref_subsystem_from_file(char *filename, Subsystem **s) {
     // there is actually no need for a loop for the time being but it doesn't hurt
     while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
 
-        // if a line contains a subsystem declaration
-        if((starts_with(line, COMP_DESIGNATION))) {
+        // if a line contains a subsystem declaration...
+        if((starts_with(line, DECL_DESIGNATION))) {
 
-            // find the newline character and replace it with a null byte
+            // ...find the newline character, replace it with a null byte...
             char *nl = strpbrk(line, "\n");
             *nl = '\0';
 
-            // parse the line into s
+            // ...and parse the line into s
             if ( (_en=str_to_subsys_ref(line, *s, nread)) ) return _en;
         }
 
