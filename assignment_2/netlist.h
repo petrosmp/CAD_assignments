@@ -53,9 +53,9 @@ typedef struct subsystem{
     char** outputs;                 /* The names of the outputs of the subsystem. */
     char* source;                   /* The name of the file that the subsystem was defined in. */
     enum SUBSYSTEM_TYPE type;       /* Whether this is a functional subsystem or a reference one */
-    int _componentc;                /* The number of components the subsystem is made of, (if it is a functional one) */
-    struct component **components;  /* The list of the subsystem components, (if it is a functional one) */
-    char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs, (if it is a functional one) */
+    int _componentc;                /* The number of components the subsystem is made of (if it is a functional one) */
+    struct component **components;  /* The list of the subsystem components (if it is a functional one) */
+    char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
 } Subsystem;
 
 /**
