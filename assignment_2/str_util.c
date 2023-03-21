@@ -46,11 +46,14 @@ int write_list_at(int lc, char** l, char* delim, char* dest, int offset, int n, 
         _offset += strlen(l[i]);
         *b_w = _offset-offset;
 
-        // check if we can write the delim
-        if ((_offset-offset) + strlen(delim)> n) return NES;
 
-        // write the delim if needed
+        // check if a delim is needed
         if (i != lc-1) {
+
+            // check if we can write the delim
+            if ((_offset-offset) + strlen(delim)> n) return NES;
+
+            // write the delim
             if( (_en=write_at(dest, delim, _offset, strlen(delim))) ) return _en;
             _offset += strlen(delim);
             *b_w = _offset-offset;
