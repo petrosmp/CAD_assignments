@@ -3,10 +3,6 @@
  * 
  * Also a bit of file stuff.
 */
-
-#include <stdio.h>
-#include <string.h>
-
 #define NES 1   /* Error # meaning not enough space. */
 #define NARG -1 /* Error # meaning null argument(s). */
 

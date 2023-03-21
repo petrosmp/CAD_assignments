@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "str_util.h"
 
 int write_at(char* dest, char* src, int offset, int n) {

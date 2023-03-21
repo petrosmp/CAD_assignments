@@ -1,5 +1,8 @@
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "netlist.h"
+#include "str_util.h"
 
 void free_subsystem(Subsystem *s) {
 

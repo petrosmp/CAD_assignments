@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "netlist.h"
 
 #define SUBSYSTEM_LIB_FILENAME "subsystem.lib"
