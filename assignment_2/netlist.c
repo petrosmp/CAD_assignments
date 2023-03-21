@@ -271,7 +271,10 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
     // write the declaration line
     char *line = malloc(MAX_LINE_LEN);
     int _en;
-    if ( (_en=subsys_to_ref_str(s, line, MAX_LINE_LEN)) ) return _en;
+    if ( (_en=subsys_to_ref_str(s, line, MAX_LINE_LEN)) ) {
+        free(line);
+        return _en;
+    }
     fprintf(fp, "%s\n", line);
 
     // write the "BEGIN NETLIST" line
@@ -279,7 +282,10 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
 
     // write the components
     for (int i=0; i<s->_componentc; i++) {
-        if ( (_en=comp_to_str(s->components[i], line, MAX_LINE_LEN)) ) return _en;
+        if ( (_en=comp_to_str(s->components[i], line, MAX_LINE_LEN)) ) {
+            free(line);
+            return _en;
+        }
         fprintf(fp, "%s\n", line);
     }
 
