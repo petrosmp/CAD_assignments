@@ -116,24 +116,24 @@ int str_to_list(char *str, char ***l, char *delim) {
 
     while(str != NULL) {
 
-        // get the name of the output
+        // get the list item
         cur = split(&str, delim);
         
-        // allocate memory for the entry in the output table
+        // allocate memory for the list entry
         (*l) = realloc((*l), sizeof(char*)*(i+1));
         if ((*l) == NULL) {
             fprintf(stderr, "malloc() error! not enough memory!\n");
             exit(-1);
         }
 
-        // allocate memory for the output's name (plus a null byte)
+        // allocate memory for the item (plus a null byte)
         (*l)[i] = malloc(strlen(cur)+1);
         if ((*l)[i] == NULL) {
             fprintf(stderr, "malloc() error! not enough memory!\n");
             exit(-1);
         }
 
-        // copy the name of the output into the table
+        // copy the item into the table
         strncpy((*l)[i], cur, strlen(cur)+1);  // strncpy will insert null bytes in empty space
 
         i++;
