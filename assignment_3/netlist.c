@@ -309,3 +309,215 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
 
     return 0;
 }
+
+int str_to_gate(char *str, Gate *g, int n) {
+
+    if (str==NULL || g==NULL) {
+        return NARG;
+    }
+
+    // any line declaring a gate starts with DECL_DESIGNATION which we ignore
+    int offset = strlen(DECL_DESIGNATION);
+
+    /* 
+       because split alters its first argument, and we need to keep
+       the original address of str so we can free it, we use an internal
+       variable to pass to split
+    */
+    char *_str = str+offset;
+
+    // get the fields of the line
+    char *name        = split(&_str, GENERAL_DELIM);
+    char *raw_inputs  = split(&_str, GENERAL_DELIM);
+
+    // get the input list (get rid of the designation)
+    char *_inputs = raw_inputs+strlen(INPUT_DESIGNATION);
+
+    // parse the input and output lists
+    g->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
+
+    g->_inputc = str_to_list(_inputs, &(g->inputs), IN_OUT_DELIM);
+    g->name = malloc(strlen(name)+1);
+    strncpy(g->name, name, strlen(name)+1);
+
+    return 0;
+}
+
+int gate_to_str(Gate *g, char *str, int n) {
+    
+    if (g==NULL || str==NULL) {
+        return NARG;
+    }
+
+    int offset = 0;
+    int _en;
+
+    // write the first word, indicating that this is a gate
+    if( (_en = write_at(str, DECL_DESIGNATION, offset, strlen(DECL_DESIGNATION))) ) return _en;
+    offset += strlen(DECL_DESIGNATION);
+
+    // write the name of the gate
+    if( (_en = write_at(str, g->name, offset, strlen(g->name))) ) return _en;
+    offset += strlen(g->name);
+
+    // write the default delimiter
+    if( (_en = write_at(str, GENERAL_DELIM, offset, strlen(GENERAL_DELIM))) ) return _en;
+    offset += strlen(GENERAL_DELIM);
+
+    // write the input designation
+    if( (_en = write_at(str, INPUT_DESIGNATION, offset, strlen(INPUT_DESIGNATION))) ) return _en;
+    offset += strlen(INPUT_DESIGNATION);
+
+    // write the inputs, separated by delimiter
+    int list_bytes = 0;
+    _en = write_list_at(g->_inputc, g->inputs, IN_OUT_DELIM, str, offset, n-1-offset, &list_bytes);
+    if (_en) return _en;
+    offset += list_bytes;
+
+    // manually null terminate the string
+    str[offset] = '\0';
+    return 0;
+}
+
+void free_gate(Gate *g) {
+
+    // free name
+    if (g->name != NULL) {
+        free(g->name);
+    }
+
+    // free inputs
+    if (g->inputs != NULL) {
+        for(int i=0; i<g->_inputc; i++) {
+            if (g->inputs[i] != NULL) {
+                free(g->inputs[i]);
+            }
+        }
+        free(g->inputs);
+    }
+
+    // free g itself
+    free(g);
+}
+
+void free_standard(Standard *s) {
+    
+    if (s != NULL) {
+
+        // call the appropriate free() function 
+        if (s->type == GATE) {
+            free_gate(s->gate);
+        } else if (s->type == SUBSYSTEM) {
+            free_subsystem(s->subsys);
+        }
+
+        free(s);
+    }
+}
+
+void free_node(Node *n) {
+
+    if (n != NULL) {
+        free_standard(n->std);
+        free(n);
+    }
+}
+
+int add_to_lib(Library *lib, Standard* s) {
+
+    if (lib==NULL || s==NULL) {
+        return NARG;
+    }
+
+    // make the standard into a node
+    Node *n = malloc(sizeof(Node));
+    n->type = STANDARD;
+    n->std = s;
+    n->next = NULL;
+
+    // connect the new node to the library
+    if (lib->contents == NULL) {
+        lib->contents = n;
+    } else {
+        lib->_tail->next = n;
+    }
+
+    lib->_tail = n;
+
+    return 0;
+}
+
+int gate_lib_from_file(char *filename, Library* lib) {
+    
+    if (filename == NULL || lib==NULL) {
+        return NARG;
+    }
+    
+    char *line = NULL;  // no need to malloc it, getline() does that for us (and also reallocs if needed) 
+
+    int nread = 0;
+    int offset = 0;
+    size_t len = 0;
+    int _en;
+
+    // save the filename
+    lib->file = malloc(strlen(filename));
+    strncpy(lib->file, filename, strlen(filename)+1);
+
+    // loop through the lines of the file and get the contents
+    while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
+
+        // if a line contains a gate declaration...
+        if((starts_with(line, DECL_DESIGNATION))) {
+
+            // ...find the newline character, replace it with a null byte...
+            char *nl = strpbrk(line, "\n");
+            *nl = '\0';
+
+            // ...parse the line into a new gate...
+            Gate *g = malloc(sizeof(Gate));
+            if ( (_en=str_to_gate(line, g, nread)) ) return _en;
+
+            // ...create a standard from that new gate...
+            Standard *s = malloc(sizeof(Standard));
+            s->type = GATE;
+            s->gate = g;
+            s->defined_in = lib;
+
+            // ...and add the standard to the library
+            if ( (_en=add_to_lib(lib, s)) ) return _en;
+        }
+
+        // move the cursor
+        offset += nread;
+    }
+
+    free(line);
+
+    return 0;
+}
+
+void free_lib(Library *lib) {
+
+    if (lib != NULL) {
+
+        // free the contents
+        if (lib->contents != NULL) {
+            Node *cur = lib->contents;
+            while (cur != NULL) {
+                lib->contents = cur->next;
+                free_node(cur);
+                cur = lib->contents;
+            }
+        }
+
+        // free the filename
+        if (lib->file != NULL) {
+            free(lib->file);
+        }
+
+        // free the lib itself
+        free(lib);
+    }
+}
+

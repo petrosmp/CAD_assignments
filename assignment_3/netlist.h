@@ -14,7 +14,8 @@
 #define COMP_ID_PREFIX "U"          /* The prefix of every component id. When printing the a component c, COMP_ID_PREFIX<c.id> will be printed */
 #define COMP_DELIM  " "             /* The delimiter separating the attributes of a component */
 #define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist file */
-
+#define COMMENT_PREFIX "%%"         /* The prefix of any comment line */
+#define KEYWORD_PREFIX "**"         /* The prefix of any keyword line */
 
 /**
  * The possible types of subsystems.
@@ -31,6 +32,70 @@ enum SUBSYSTEM_TYPE {
 };
 
 /**
+ * Since a single node structure is used for all linked list needs of the
+ * program, we need a way to have a way to tell what each node contains.
+*/
+enum NODE_TYPE {
+    STANDARD,   /* The node contains a standard subsystem (as read from a library) */
+    SUBSYSTEM_N,  /* The node contains a functional subsystem (as described in a netlist) */
+    COMPONENT   /* The node contains a component (a part of any type of subsystem) */
+};
+
+/**
+ * Since only one structure is used to represent items read from a library,
+ * we need a way to tell what each item is.
+ * 
+ * TODO: The same enumeration is used to mark the types of libraries, so a 
+ * change of name may be in order.
+*/
+enum STANDARD_TYPE {
+    GATE,       /* The standard describes a gate */
+    SUBSYSTEM   /* The standard describes a subsystem */
+};
+
+/**
+ * Nodes are the building blocks of the linked lists that contain
+ * the standards defined in libraries.
+ * 
+ * They contain a standard an a pointer to the next node in the list.
+*/
+typedef struct node {
+    enum NODE_TYPE type;    /* The type of data the node contains */
+    union {
+        struct standard *std;      /* The standard the node contains */
+        struct subsystem *subsys;  /* The subsystem the node contains */
+        struct component *comp;    /* The component the node contains */
+    };
+    struct node *next;             /* The next node in the list */
+} Node;
+
+/**
+ * A library is a collection of standards, usually read from a file.
+ * It can either contain subsystems or gates (technically it can contain
+ * both, but we use separate libraries for each).
+ * 
+ * It contains a linked list with the standards it contains, as well as
+ * the name of the file in which they were defined.
+*/
+typedef struct lib {
+    enum STANDARD_TYPE type;    /* The possible types are the same  */
+    Node *contents;             /* The contents of the library */
+    Node *_tail;                /* The last node of the list, for O(1) insertions */
+    char *file;                 /* The file the library was defined in */
+} Library;
+
+
+/**
+ * A gate is assumed to be the basic building block of everything. It only
+ * has one outputs but can have an arbitrary number of inputs.
+*/
+typedef struct gate {
+    char* name;                     /* The name of this gate (ASCII, human readable). */
+    int _inputc;                    /* The number of inputs the gate has (mainly for internal use). */
+    char** inputs;                  /* The names of the inputs of the gate. */
+} Gate;
+
+/**
  * A subsystem is a circuit with both inputs and outputs, comprised by
  * gates or other subsystems, defined in a subsystem library.
  * 
@@ -45,7 +110,7 @@ enum SUBSYSTEM_TYPE {
  * TODO: Would it be better design if those 2 were different structs? It would save ~32 bytes per
  *       reference subsystem and avoid cyclic dependencies
 */
-typedef struct subsystem{
+typedef struct subsystem {
     char* name;                     /* The name of this subsystem (ASCII, human readable). */
     int _inputc;                    /* The number of inputs the subsystem has (mainly for internal use). */
     char** inputs;                  /* The names of the inputs of the subsystem. */
@@ -57,6 +122,25 @@ typedef struct subsystem{
     struct component **components;  /* The list of the subsystem components (if it is a functional one) */
     char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
 } Subsystem;
+
+/**
+ * A standard is a subsystem or gate read from a library file and
+ * used inside components to indicate the "type" of each component.
+ * 
+ * For example, if "c" is a component we know nothing about, we can
+ * find information regarding its name, inputs and outputs from its
+ * standard, which must have been read from a library.
+*/
+typedef struct standard {
+
+    enum STANDARD_TYPE type;/* The type of circuit this standard defines (gate or subsystem) */
+    union {
+        Subsystem* subsys;  /* The subsystem this standard defines */
+        Gate* gate;         /* The gate this standard defines */
+    };
+    Library *defined_in;    /* The library in which this standard is defined */
+
+} Standard;
 
 /**
  * A component is an instance of a subsystem as part of a circuit.
@@ -78,6 +162,86 @@ typedef struct component {
     int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
     char **inputs;          /* The names of the input signals of the component */
 } Component;
+
+/**
+ * Reads up to n bytes from str (which is assumed to contain the data
+ * necessary to define a gate) and parses the information into the fields
+ * of g.
+ * 
+ * Does not allocate memory for the gate itself but does for every input
+ * and the input list itself.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - NES on failure because of not enough space
+ *  - NARG on failure because of null arguments.
+*/
+int str_to_gate(char *str, Gate *g, int n);
+
+/**
+ * Writes an ASCII representation of the given gate to str, writing no more
+ * than n bytes, null terminator ('\0') included.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - NES on failure because of not enough space
+ *  - NARG on failure because of null arguments.
+*/
+int gate_to_str(Gate *g, char *str, int n);
+
+/**
+ * Properly free up the memory allocated for and used by the given gate. 
+*/
+void free_gate(Gate *g);
+
+/**
+ * Properly free up the memory allocated for and used by a standard.
+*/
+void free_standard(Standard *s);
+
+/**
+ * Properly free up the memory allocated for and used by a node.
+*/
+void free_node(Node *n);
+
+/**
+ * Add the given standard to (the end of) the given library.
+ * 
+ * Allocates memory for the new node that the standard will
+ * use to connect to the library.
+ * 
+ * The standard is assumed to already be initialized. The data
+ * it contains are not modified.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - NARG on failure because of null arguments.
+*/
+int add_to_lib(Library *lib, Standard* s);
+
+/**
+ * Parse the contents of a file into standards and store them in the given
+ * library.
+ * 
+ * Does not allocate memory for the library, this has to be done by the caller.
+ * The memory is assumed to be newly allocated, so if called on an already
+ * initialized library, memory leaks are around the corner.
+ * 
+ * Reads the file line by line, and ignores any line starting with "%%" or
+ * "**".
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - NES on failure because of not enough space
+ *  - NARG on failure because of null arguments.
+*/
+int gate_lib_from_file(char *filename, Library* lib);
+
+/**
+ * Properly free up the memorey allocated for and used by a library and
+ * its members.
+*/
+void free_lib(Library *lib);
 
 /**
  * Free the memory that was allocated for subsystem s and all its

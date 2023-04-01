@@ -1,4 +1,4 @@
-all: str_util netlist custom_full_adder
+all: str_util netlist gate_test
 
 str_util: str_util.h str_util.c
 	gcc -Wall -shared -fpic -o libstr.so $(word 2,$^) -g
@@ -6,11 +6,11 @@ str_util: str_util.h str_util.c
 netlist: netlist.h netlist.c libstr.so
 	gcc -Wall -shared -fpic -o libnetlist.so -L. -Wl,-rpath=. $(word 2,$^) -lstr -g
 
-custom_full_adder: custom_full_adder.c
-	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lnetlist -g
+gate_test: gate_test.c
+	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lstr -lnetlist -g
 
 clean:
 	rm -f libstr.so
 	rm -f libnetlist.so
-	rm -f custom_full_adder
+	rm -f gate_test
 	rm -f netlist.txt
