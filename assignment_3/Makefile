@@ -1,4 +1,4 @@
-all: str_util netlist gate_test
+all: str_util netlist gate_test trim_test
 
 str_util: str_util.h str_util.c
 	gcc -Wall -shared -fpic -o libstr.so $(word 2,$^) -g
@@ -8,6 +8,9 @@ netlist: netlist.h netlist.c libstr.so
 
 gate_test: gate_test.c
 	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lstr -lnetlist -g
+
+trim_test: trim_test.c
+	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lstr -g
 
 clean:
 	rm -f libstr.so

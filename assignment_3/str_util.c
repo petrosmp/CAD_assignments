@@ -100,12 +100,28 @@ int read_line_from_file(char **line, char *filename, size_t *len, int offset) {
     fseek(fp, offset, SEEK_SET);
     nread = getline(line, len, fp);
 
+    char* ignore_start = strstr(*line, COMMENT_PREFIX);
+    if (ignore_start) {
+        *ignore_start=0;
+    }
+    
+    ignore_start = strstr(*line, KEYWORD_PREFIX);
+    if (ignore_start) {
+        *ignore_start=0;
+    }
+
+    trim_line(line);
+
     fclose(fp);
 
     return nread;
 }
 
 int starts_with(char *s1, char *s2) {
+
+    if (s1 == NULL || s2 == NULL) {
+        fprintf(stderr, "null!\n");
+    }
 
     if (strlen(s1) < strlen(s2)) return 0;
 
@@ -145,4 +161,30 @@ int str_to_list(char *str, char ***l, char *delim) {
     }
 
     return i;
+}
+
+int trim_line(char **line) {
+    int i=0, text=0, end=0;
+    char *start = (*line);
+
+    // iterate over each character
+    while ((*line)[i] != '\0') {
+
+        if ((*line)[i]==' ' || (*line)[i]=='\t') {
+            if (!text) start++; // if it's whitespace before text, move the start accordingly
+        } else {
+            text = 1;   // raise the text flag
+            end=i-(start-(*line));  // mark where text ends (the rest is whitespace)
+        }
+
+        i++;
+    }
+
+    start[end+1] = '\0';
+
+    if (*line != start) {
+        memmove(*line, start, end+1);   // memmove instead of strcpy because sections overlap
+    }
+
+    return 0;
 }

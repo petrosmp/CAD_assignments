@@ -6,6 +6,14 @@
 #define NES 1   /* Error # meaning not enough space. */
 #define NARG -1 /* Error # meaning null argument(s). */
 
+#ifndef COMMENT_PREFIX
+#define COMMENT_PREFIX "%%"         /* The prefix of any comment line */
+#endif
+
+#ifndef KEYWORD_PREFIX
+#define KEYWORD_PREFIX "**"         /* The prefix of any keyword line */
+#endif
+
 /**
  * Write no more than n bytes from src into dest starting at offset
  * 
@@ -70,7 +78,21 @@ char *split(char **str, char *delim);
  * be freed by the caller.
  * 
  * See getline()'s manpage for info about the stored line (it is null terminated and
- * includes the newline character).
+ * does not include the newline character).
+ * 
+ * If a line contains a COMMENT_PREFIX or a KEYWORD_PREFIX, the rest of the line is
+ * omited (a null byte is added where the prefix was).
+ * 
+ * Ignores whitespace before and after the "meaningful" part of each line. For example,
+ * the following line:
+ * "   COMP NOT ; IN: P        ** THE LINE WITH THE %% COMMENT"
+ * Will store the following string in the given buffer:
+ * "COMP NOT ; IN: P"
+ * 
+ * In that case, nread is the number of bytes read from the file, but the string contained
+ * in *line is not of the same length. Checking the length of each string is therefore a
+ * good way to make sure no segmentation faults or stack smashings occur.
+ * 
 */
 int read_line_from_file(char **line, char *filename, size_t *len, int offset);
 
@@ -95,3 +117,15 @@ int starts_with(char *s1, char *s2);
  * pointer to it (for example to free it later) is suggested.
 */
 int str_to_list(char *str, char ***l, char *delim);
+
+/**
+ * Remove the starting and trailing whitespace from a line of text.
+ * 
+ * The given string is assumed to end with a null terminator, which is preserved,
+ * but any excess whitespace between it and the last non-whitespace character
+ * is omited.
+ * 
+ * Any whitespace (" " or "\t") before the first non-whitespace character is
+ * also ommited.
+*/
+int trim_line(char **line);
