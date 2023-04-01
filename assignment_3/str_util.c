@@ -183,7 +183,7 @@ int trim_line(char **line) {
     start[end+1] = '\0';
 
     if (*line != start) {
-        memmove(*line, start, end+1);   // memmove instead of strcpy because sections overlap
+        memmove(*line, start, end+2);   // memmove instead of strcpy because sections overlap
     }
 
     return 0;
