@@ -461,34 +461,36 @@ int gate_lib_from_file(char *filename, Library* lib) {
     int _en;
 
     // save the filename
-    lib->file = malloc(strlen(filename));
+    lib->file = malloc(strlen(filename)+1);
     strncpy(lib->file, filename, strlen(filename)+1);
+
+    // initialize the contents list pointer to null
+    lib->contents = NULL;
 
     // loop through the lines of the file and get the contents
     while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
 
-        // if a line contains a gate declaration...
-        if((starts_with(line, DECL_DESIGNATION))) {
+        if (strlen(line) != 0) {
 
-            // ...find the newline character, replace it with a null byte...
-            char *nl = strpbrk(line, "\n");
-            *nl = '\0';
+            // if a line contains a gate declaration...
+            if((starts_with(line, DECL_DESIGNATION))) {
 
-            // ...parse the line into a new gate...
-            Gate *g = malloc(sizeof(Gate));
-            if ( (_en=str_to_gate(line, g, nread)) ) return _en;
+                // ...parse the line into a new gate...
+                Gate *g = malloc(sizeof(Gate));
+                if ( (_en=str_to_gate(line, g, strlen(line))) ) return _en; // strlen(line) and not nread, because they might differ (see read_line())
 
-            // ...create a standard from that new gate...
-            Standard *s = malloc(sizeof(Standard));
-            s->type = GATE;
-            s->gate = g;
-            s->defined_in = lib;
+                // ...create a standard from that new gate...
+                Standard *s = malloc(sizeof(Standard));
+                s->type = GATE;
+                s->gate = g;
+                s->defined_in = lib;
 
-            // ...and add the standard to the library
-            if ( (_en=add_to_lib(lib, s)) ) return _en;
+                // ...and add the standard to the library
+                if ( (_en=add_to_lib(lib, s)) ) return _en;
+            }
         }
 
-        // move the cursor
+        // move the cursor according to the bytes read from the file
         offset += nread;
     }
 
