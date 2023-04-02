@@ -48,7 +48,6 @@ int write_list_at(int lc, char** l, char* delim, char* dest, int offset, int n, 
         _offset += strlen(l[i]);
         *b_w = _offset-offset;
 
-
         // check if a delim is needed
         if (i != lc-1) {
 
@@ -130,6 +129,21 @@ int starts_with(char *s1, char *s2) {
     return 0;
 }
 
+int index_starts_with(char *s1, char **list, int l_c) {
+
+    if (s1==NULL || list==NULL) {
+        return NARG;
+    }
+
+    for (int i=0; i<l_c; i++) {
+        if (starts_with(s1, list[i])) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 int str_to_list(char *str, char ***l, char *delim) {
 
     char *cur;
@@ -139,7 +153,7 @@ int str_to_list(char *str, char ***l, char *delim) {
 
         // get the list item
         cur = split(&str, delim);
-        
+
         // allocate memory for the list entry
         (*l) = realloc((*l), sizeof(char*)*(i+1));
         if ((*l) == NULL) {
@@ -170,7 +184,7 @@ int trim_line(char **line) {
     // iterate over each character
     while ((*line)[i] != '\0') {
 
-        if ((*line)[i]==' ' || (*line)[i]=='\t') {
+        if ((*line)[i]==' ' || (*line)[i]=='\t' || (*line)[i]=='\n') {
             if (!text) start++; // if it's whitespace before text, move the start accordingly
         } else {
             text = 1;   // raise the text flag
@@ -188,3 +202,4 @@ int trim_line(char **line) {
 
     return 0;
 }
+

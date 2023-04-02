@@ -105,6 +105,13 @@ int read_line_from_file(char **line, char *filename, size_t *len, int offset);
 int starts_with(char *s1, char *s2);
 
 /**
+ * Check if s1 starts with any of the strings in list (that has l_c
+ * items). If a match is found, return the index of the matching
+ * string, otherwise return -1.
+*/
+int index_starts_with(char *s1, char **list, int l_c);
+
+/**
  * Split str into substrings separated by delim and store them in l.
  * Returns the number of items written. Allocates memory for each
  * element of l and for l itself (meaning l can be NULL, and any

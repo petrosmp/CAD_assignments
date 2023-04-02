@@ -31,19 +31,14 @@ void free_subsystem(Subsystem *s) {
         free(s->name);
     }
 
-    // free source
-    if (s->source != NULL) {
-        free(s->source);
-    }
-
     // free component list
     if (s->components != NULL) {
-        for (int i=0; i<s->_componentc; i++) {
-            if (s->components[i] != NULL) {
-                free_component(s->components[i]);
-            }
+        Node *c=s->components; 
+        while ( c!=NULL) {
+            s->components = c->next;
+            free_node(c);
+            c=s->components;
         }
-        free(s->components);
     }
 
     // free output mapping list
@@ -60,7 +55,7 @@ void free_subsystem(Subsystem *s) {
     free(s);
 }
 
-int subsys_to_ref_str(Subsystem* s, char* str, int n) {
+int subsys_hdr_to_str(Subsystem* s, char* str, int n) {
 
     /*
         strncpy could be used to do each part of this, but
@@ -119,7 +114,7 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n) {
     return 0;
 }
 
-int str_to_subsys_ref(char *str, Subsystem *s, int n) {
+int str_to_subsys_hdr(char *str, Subsystem *s, int n) {
 
     // any line declaring a subsystem starts with DECL_DESIGNATION which we ignore
     int offset = strlen(DECL_DESIGNATION);
@@ -152,51 +147,6 @@ int str_to_subsys_ref(char *str, Subsystem *s, int n) {
     s->_outputc = str_to_list(_outputs, &(s->outputs), IN_OUT_DELIM);
     s->name = malloc(strlen(name)+1);
     strncpy(s->name, name, strlen(name)+1);
-
-    return 0;
-}
-
-int read_ref_subsystem_from_file(char *filename, Subsystem **s) {
-    
-    if (filename == NULL || (*s)==NULL) {
-        return NARG;
-    }
-    
-    char *line = NULL;  // no need to malloc it, getline() does that for us (and also reallocs if needed) 
-
-    int nread = 0;
-    int offset = 0;
-    size_t len = 0;
-    int _en;
-
-    // there is actually no need for a loop for the time being but it doesn't hurt
-    while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
-
-        // if a line contains a subsystem declaration...
-        if((starts_with(line, DECL_DESIGNATION))) {
-
-            // ...find the newline character, replace it with a null byte...
-            char *nl = strpbrk(line, "\n");
-            *nl = '\0';
-
-            // ...and parse the line into s
-            if ( (_en=str_to_subsys_ref(line, *s, nread)) ) return _en;
-        }
-
-        // move the cursor
-        offset += nread;
-    }
-
-    free(line);
-
-    // allocate and set s->source
-    (*s)->source = malloc(strlen(filename)+1);
-    strncpy((*s)->source, filename, strlen(filename)+1);
-
-    // set s->type and functional subsystem fields
-    (*s)->type = REFERENCE;
-    (*s)->components = NULL;
-    (*s)->output_mappings = NULL;
 
     return 0;
 }
@@ -238,8 +188,9 @@ int comp_to_str(Component *c, char *str, int n) {
     offset += strlen(COMP_DELIM);
 
     // write the type of the component
-    if ( (_en=write_at(str, c->standard->name, offset, strlen(c->standard->name))) ) return _en;
-    offset += strlen(c->standard->name);
+    char *name = c->prototype->type==GATE?c->prototype->gate->name : c->prototype->subsys->name;
+    if ( (_en=write_at(str, name, offset, strlen(name))) ) return _en;
+    offset += strlen(name);
 
     // write the delimiter
     if ( (_en=write_at(str, COMP_DELIM, offset, strlen(COMP_DELIM))) ) return _en;
@@ -277,7 +228,7 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
     // write the declaration line
     char *line = malloc(MAX_LINE_LEN);
     int _en;
-    if ( (_en=subsys_to_ref_str(s, line, MAX_LINE_LEN)) ) {
+    if ( (_en=subsys_hdr_to_str(s, line, MAX_LINE_LEN)) ) {
         free(line);
         return _en;
     }
@@ -287,8 +238,8 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode) {
     fprintf(fp, "BEGIN %s NETLIST\n", s->name);
 
     // write the components
-    for (int i=0; i<s->_componentc; i++) {
-        if ( (_en=comp_to_str(s->components[i], line, MAX_LINE_LEN)) ) {
+    for (Node *c=s->components; c!=NULL; c=c->next) {
+        if ( (_en=comp_to_str(c->comp, line, MAX_LINE_LEN)) ) {
             free(line);
             return _en;
         }
@@ -418,7 +369,17 @@ void free_standard(Standard *s) {
 void free_node(Node *n) {
 
     if (n != NULL) {
-        free_standard(n->std);
+
+        if (n->type == STANDARD) {
+            free_standard(n->std);
+        } else if (n->type == COMPONENT) {
+            free_component(n->comp);
+        } else if (n->type == SUBSYSTEM_N) {
+
+        }
+        
+
+
         free(n);
     }
 }
@@ -499,6 +460,29 @@ int gate_lib_from_file(char *filename, Library* lib) {
     return 0;
 }
 
+int subsys_lib_from_file(char *filename, Library *lib) {
+    
+    if (filename == NULL || lib==NULL) {
+        return NARG;
+    }
+    
+    char *line = NULL;  // no need to malloc it, getline() does that for us (and also reallocs if needed) 
+
+    int nread = 0;
+    int offset = 0;
+    size_t len = 0;
+    int _en;
+
+    // save the filename
+    lib->file = malloc(strlen(filename)+1);
+    strncpy(lib->file, filename, strlen(filename)+1);
+
+    // initialize the contents list pointer to null
+    lib->contents = NULL;
+
+    return 0;
+}
+
 void free_lib(Library *lib) {
 
     if (lib != NULL) {
@@ -523,3 +507,95 @@ void free_lib(Library *lib) {
     }
 }
 
+Standard* search_in_lib(Library *lib, char *name) {
+
+
+    if (lib==NULL || name==NULL) {
+        return NULL;
+    }
+
+    Standard *r_std = NULL;
+    Node *n = lib->contents;
+
+    while (n!= NULL) {
+
+        if (n->type != STANDARD) return NULL;
+        if (n->std == NULL) return NULL;
+
+        // check the name of the standard in the current node appropriately        
+        r_std = n->std;
+        if (r_std->type == GATE) {
+            if ((strlen(name) == strlen(r_std->gate->name)) && (strncmp(r_std->gate->name, name, strlen(name)) == 0)) {
+                return r_std;
+            }
+        } else if (r_std->type == SUBSYSTEM) {
+            if ((strlen(name) == strlen(r_std->subsys->name)) &&  (strncmp(r_std->subsys->name, name, strlen(name)) == 0)) {
+                return r_std;
+            }
+        }
+        
+        // move on to the next node
+        n=n->next;
+    }
+
+    return NULL;
+}
+
+int str_to_comp(char *str, Component *c, int n, Library *lib) {
+
+    if (str==NULL || c==NULL) {
+        return NARG;
+    }
+
+    // skip the ID prefix
+    char *_str = str+strlen(COMP_ID_PREFIX);
+
+    // read the fields
+    char *_id         = split(&_str, COMP_DELIM);
+    char *_name       = split(&_str, COMP_DELIM);
+    char *_raw_inputs = _str;
+
+    // add the id to the component
+    c->id = atoi(_id);
+
+    // check if the name of the component is a known one
+    Standard *std = search_in_lib(lib, _name);
+    if (std == NULL) {
+        printf("Could not find component '%s' in library %s\n", _name, lib->file);
+        return UNKNOWN_COMP;
+    }
+    c->prototype = std;
+
+    // skip the input designation
+    char *_inputs = _raw_inputs+strlen(INPUT_DESIGNATION);
+
+    // parse the inputs into the component
+    c->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
+    c->_inputc = str_to_list(_raw_inputs, &(c->inputs), IN_OUT_DELIM);
+
+    return 0;
+}
+
+int subsys_add_comp(Subsystem *s, Component *c) {
+    
+    if (s==NULL || c==NULL) {
+        return NARG;
+    }
+
+    // make the component into a node
+    Node *n = malloc(sizeof(Node));
+    n->type = COMPONENT;
+    n->comp = c;
+    n->next = NULL;
+
+    // connect the new node to the library
+    if (s->components == NULL) {
+        s->components = n;
+    } else {
+        s->_tail->next = n;
+    }
+
+    s->_tail = n;
+
+    return 0;
+}

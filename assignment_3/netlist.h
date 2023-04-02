@@ -16,29 +16,21 @@
 #define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist file */
 #define COMMENT_PREFIX "%%"         /* The prefix of any comment line */
 #define KEYWORD_PREFIX "**"         /* The prefix of any keyword line */
-
-/**
- * The possible types of subsystems.
- * 
- * The subsystem struct is used to represent both functional circuits and reference
- * subsystems. This is a way to designate what kind of subsystem each instance of
- * the struct is, so it can be handled accordingly.
- * 
- * See the declaration of subsystem for an explanation of the types.
-*/
-enum SUBSYSTEM_TYPE {
-	REFERENCE,  /* Only contains information regarding inputs, outputs, name and source file */
-	FUNCTIONAL, /* A functional subsystem representation, with its components and their mappings */
-};
+#define NETLIST_START "BEGIN "      /* The word that signifies that a netlist is contained in the following lines */
+#define NETLIST_END "END "          /* The word that signifies that a netlist ends in this line */
+#define UNEXPECTED_EOF -2           /* Error code returned when a file ends unexpectedly, leaving a netlist incomplete */
+#define SYNTAX_ERROR -3             /* Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
+#define UNKNOWN_COMP -4             /* Error code returned when a netlist contains a component that we have not seen in any library */
+#define OUTPUT_MAP_DELIM " = "      /* The delimiter between a subsystem output name and its mapping in a netlist */
 
 /**
  * Since a single node structure is used for all linked list needs of the
  * program, we need a way to have a way to tell what each node contains.
 */
 enum NODE_TYPE {
-    STANDARD,   /* The node contains a standard subsystem (as read from a library) */
-    SUBSYSTEM_N,  /* The node contains a functional subsystem (as described in a netlist) */
-    COMPONENT   /* The node contains a component (a part of any type of subsystem) */
+    STANDARD,       /* The node contains a standard subsystem (as read from a library) */
+    SUBSYSTEM_N,    /* The node contains a functional subsystem (as described in a netlist) */
+    COMPONENT       /* The node contains a component (any part of a subsystem) */
 };
 
 /**
@@ -84,10 +76,12 @@ typedef struct lib {
     char *file;                 /* The file the library was defined in */
 } Library;
 
-
 /**
  * A gate is assumed to be the basic building block of everything. It only
  * has one outputs but can have an arbitrary number of inputs.
+ * 
+ * Gates are defined in a component library and can be used as components
+ * of subsystems.
 */
 typedef struct gate {
     char* name;                     /* The name of this gate (ASCII, human readable). */
@@ -97,35 +91,26 @@ typedef struct gate {
 
 /**
  * A subsystem is a circuit with both inputs and outputs, comprised by
- * gates or other subsystems, defined in a subsystem library.
+ * gates or other subsystems.
  * 
- * A subsystem can be of one of the following types:
- *      - A "functional subsystem": contains pointers to all its components, as well as information
- *        regarding its output mappings.
- *      - A "reference subsystem": does not contain either of the above, and serves as a prototype
- *        when creating an instance of a subsystem the implementation of which is already known
- *        (e.g. it's implemented in a library). It only contains information regarding the number
- *        and names of the inputs and the name of the circuit.
- * 
- * TODO: Would it be better design if those 2 were different structs? It would save ~32 bytes per
- *       reference subsystem and avoid cyclic dependencies
+ * Subsystems are initially defined in a subsystem library and once defined
+ * they can be used as components in other subsystems.
 */
 typedef struct subsystem {
-    char* name;                     /* The name of this subsystem (ASCII, human readable). */
-    int _inputc;                    /* The number of inputs the subsystem has (mainly for internal use). */
-    char** inputs;                  /* The names of the inputs of the subsystem. */
-    int _outputc;                   /* The number of outputs the subsystem has (mainly for internal use). */
-    char** outputs;                 /* The names of the outputs of the subsystem. */
-    char* source;                   /* The name of the file that the subsystem was defined in. */
-    enum SUBSYSTEM_TYPE type;       /* Whether this is a functional subsystem or a reference one */
-    int _componentc;                /* The number of components the subsystem is made of (if it is a functional one) */
-    struct component **components;  /* The list of the subsystem components (if it is a functional one) */
-    char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
+    char* name;                 /* The name of this subsystem (ASCII, human readable). */
+    int _inputc;                /* The number of inputs the subsystem has (mainly for internal use). */
+    char** inputs;              /* The names of the inputs of the subsystem. */
+    int _outputc;               /* The number of outputs the subsystem has (mainly for internal use). */
+    char** outputs;             /* The names of the outputs of the subsystem. */
+    struct node *components;    /* The list of the subsystem components (if it is a functional one) */
+    struct node *_tail;         /* Pointer to the last component for O(1) insertion */
+    char **output_mappings;     /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
 } Subsystem;
 
 /**
  * A standard is a subsystem or gate read from a library file and
- * used inside components to indicate the "type" of each component.
+ * used inside components to indicate the type and basic properties
+ * of each component.
  * 
  * For example, if "c" is a component we know nothing about, we can
  * find information regarding its name, inputs and outputs from its
@@ -158,7 +143,7 @@ typedef struct standard {
 */
 typedef struct component {
     int id;                 /* The unique ID of the component */
-    Subsystem *standard;    /* The subsystem that the component is an instance of */
+    Standard *prototype;    /* The subsystem that the component is an instance of */
     int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
     char **inputs;          /* The names of the input signals of the component */
 } Component;
@@ -246,29 +231,26 @@ void free_lib(Library *lib);
 /**
  * Free the memory that was allocated for subsystem s and all its
  * members.
- * 
- * Works on both types of subsystems (reference and functional, see
- * the definition of the subsystem struct for more).
 */
 void free_subsystem(Subsystem *s);
 
 /**
- * Store a human readable string representation of the reference (*)
+ * Store a human readable string representation of the header (*)
  * information of the given subsystem in the given char*. Write
  * no more than n bytes, null terminator ('\0') included.
  * 
- * *see the definition of the subsystem struct for more
+ * * name, input and output names
  * 
  * Returns:
  *  - 0 on success
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
 */
-int subsys_to_ref_str(Subsystem* s, char* str, int n);
+int subsys_hdr_to_str(Subsystem* s, char* str, int n);
 
 /**
  * Given a string of length n (if it is longer, only n bytes will be taken
- * into account) that declares a subsystem reference (*), set s to describe
+ * into account) that declares a subsystem header (*), set s to describe
  * that subsystem too.
  * 
  * The string is assumed to be of the following format (no newlines):
@@ -288,33 +270,32 @@ int subsys_to_ref_str(Subsystem* s, char* str, int n);
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
  * 
- * *see the definition of the subsystem struct for more
+ * * name, input and output names
 */
-int str_to_subsys_ref(char *str, Subsystem *s, int n);
+int str_to_subsys_hdr(char *str, Subsystem *s, int n);
 
 /**
- * Parse the given file and insert the information it contains into the
- * given reference (*) subsystem.
+ * Add the given component to the component list of the given subsystem.
+*/
+int subsys_add_comp(Subsystem *s, Component *c);
+
+/**
+ * Parse the contents of a file into standards and store them in the given
+ * library.
  * 
- * Does not allocate memory for the new subsystem, but it does for its
- * members whenever needed.
+ * Does not allocate memory for the library, this has to be done by the caller.
+ * The memory is assumed to be newly allocated, so if called on an already
+ * initialized library, memory leaks are around the corner.
  * 
- * Also sets the subsystem's 'source' to the given filename and its type
- * to REFERENCE.
+ * Reads the file line by line, and ignores any line starting with "%%" or
+ * "**".
  * 
  * Returns:
  *  - 0 on success
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
- * 
- * *see the definition of subsystem struct for more
- * 
- * NOTE:
- * For the time being the file is assumed to have exactly 1 subsystem defined
- * in it (if there are more, there may be memory leaks or undefined behavior).
- * 
 */
-int read_ref_subsystem_from_file(char *filename, Subsystem **s);
+int subsys_lib_from_file(char *filename, Library *lib);
 
 /**
  * Properly free up the memory allocated for component c and its
@@ -335,6 +316,29 @@ void free_component(Component *c);
  *  - NARG on failure because of null arguments.
 */
 int comp_to_str(Component *c, char *str, int n);
+
+/**
+ * Search (in a serial fashion) the given library for a standard
+ * with the given name.
+ * 
+ * Case sensitive.
+ * 
+ * Returns a pointer to the standard if found, NULL otherwise.
+*/
+Standard* search_in_lib(Library *lib, char *name);
+
+/**
+ * Given a string of length n (if it is longer, only the first n
+ * bytes will be taken into account), parse its contents into the
+ * given component. Will look for a standard of the component in
+ * the given lib.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - NARG on failure because of null arguments
+ *  - UNKNOWN_COMP on failure because of unseen component type
+*/
+int str_to_comp(char *str, Component *c, int n, Library *lib);
 
 /**
  * Write the netlist for the given (functional) subsystem to the given file,
