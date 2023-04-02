@@ -280,8 +280,12 @@ int str_to_subsys_hdr(char *str, Subsystem *s, int n);
 int subsys_add_comp(Subsystem *s, Component *c);
 
 /**
- * Parse the contents of a file into standards and store them in the given
- * library.
+ * Parse the contents of the given file into standards and store them in the given
+ * library. All components used in the given file has to be defined in the given
+ * lookup_library.
+ * 
+ * TODO: the lookup should be a list of libraries, possibly containing
+ * the one currently being parsed
  * 
  * Does not allocate memory for the library, this has to be done by the caller.
  * The memory is assumed to be newly allocated, so if called on an already
@@ -295,7 +299,7 @@ int subsys_add_comp(Subsystem *s, Component *c);
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
 */
-int subsys_lib_from_file(char *filename, Library *lib);
+int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib);
 
 /**
  * Properly free up the memory allocated for component c and its
