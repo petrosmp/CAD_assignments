@@ -145,3 +145,7 @@ int trim_line(char **line);
 */
 int contains(int l_c, char **list, char *str);
 
+/**
+ * Returns the number of digits that x has.
+*/
+int digits(int x);

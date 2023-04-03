@@ -222,3 +222,13 @@ int contains(int l_c, char **list, char *str) {
     return -1;
 
 }
+
+int digits(int x) {
+    int d = 0;
+    while(x != 0) {
+       x /= 10;
+       d++;
+    }
+    return d;
+}
+
