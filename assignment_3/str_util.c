@@ -203,3 +203,22 @@ int trim_line(char **line) {
     return 0;
 }
 
+int contains(int l_c, char **list, char *str) {
+
+    if (list==NULL || str==NULL) {
+        return NARG;
+    }
+
+    // iterate through the list
+    for(int i=0; i<l_c; i++) {
+
+        // check that each item is not null
+        if (list[i] == NULL) return NARG;
+
+        // check if each item matches the given string
+        if (strncmp(list[i], str, strlen(str)) == 0) return i;
+    }
+
+    return -1;
+
+}

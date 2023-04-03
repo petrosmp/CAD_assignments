@@ -136,3 +136,12 @@ int str_to_list(char *str, char ***l, char *delim);
  * also ommited.
 */
 int trim_line(char **line);
+
+/**
+ * Check if a given string is contained in a given list of l_c strings.
+ * 
+ * Returns the index of the string in the list if it is found, -1
+ * otherwise.
+*/
+int contains(int l_c, char **list, char *str);
+
