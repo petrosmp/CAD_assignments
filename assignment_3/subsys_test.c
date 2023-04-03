@@ -218,17 +218,19 @@ int main() {
 
             }
             
-            fprintf(stderr, "inputs for U%d, %s are the following: ", comp->id, comp->prototype->subsys->name);
+/*             fprintf(stderr, "inputs for U%d, %s are the following: ", comp->id, comp->prototype->subsys->name);
             for (int i=0; i<comp->_inputc; i++) {
                 fprintf(stderr, "%s ", inputs[i]);
             }
             fprintf(stderr, "\n");
-
+ */
             // we now have a complete list of inputs for each component
             // we need to create the netlist of that component with the inputs we now have
             // and add it to the subsystems array
             subsystems[s_i] = malloc(sizeof(Subsystem));
             component_id = create_custom(subsystems[s_i], comp->prototype, comp->_inputc, inputs, component_id);
+
+            // we can free the inputs here
 
             for(Node *c_c = subsystems[s_i]->components; c_c!=NULL; c_c=c_c->next) {
                 subsys_add_comp(only_gates_sub, c_c->comp);
@@ -244,15 +246,44 @@ int main() {
         
         // we have now filled the subsystems array with subsystems whose components are gates and numbered consistently
 
+        // now we need to map the outputs of c2 to gate only things
+        only_gates_sub->output_mappings = malloc(sizeof(char*) * only_gates_sub->_outputc); // +1 for the null byte
 
+        for(int i=0; i<c2->_outputc; i++) {
+            
+            Mapping *om = c2->o_maps[i];
 
+            // assuming all mappings are to gates and none is to input
+            if (om->type != SUBSYS_COMP) printf("error mapping type!\n");
+    
+            // find out the component that the mapping maps to, which will now be a subsystem in subsystems
+            Subsystem *mapped = subsystems[om->index];
+
+            // assume everything in the subsystems[] array is a subsystem (and not a gate) (TODO: FIX)
+                        
+            // then after the UXX_ in output_mappings[i] there is the name of the output we are interested in
+            // find the name of the output
+            char *o_name = c2->output_mappings[i]+strlen(COMP_ID_PREFIX)+digits(om->index+1)+1;
+
+            // find the index of that output in the mapping
+            int index = contains(mapped->_outputc, mapped->outputs, o_name);
+            if (index == -1) printf("Error!\n");
+
+            // find the output mapping for that output
+            char *m = mapped->output_mappings[index];
+
+            // put it in the output list
+            only_gates_sub->output_mappings[i] = malloc(strlen(m)+1); // +1 for the null byte
+            strncpy(only_gates_sub->output_mappings[i], m, strlen(m)+1);
+
+        }
 
         // print the stuff
         for (Node *n_n=only_gates_sub->components; n_n!=NULL; n_n=n_n->next) {
 
                 Component *comp = n_n->comp;
             
-                printf("\tU%d %s ", comp->id, comp->prototype->gate->name);
+                printf("U%d %s ", comp->id, comp->prototype->gate->name);
 
                 for (int i=0; i<comp->_inputc; i++) {
                     printf("%s ", comp->inputs[i]);
@@ -265,7 +296,9 @@ int main() {
 
         node_ptr = node_ptr->next;
 
-        
+        for (int i=0; i<only_gates_sub->_outputc; i++) {
+            printf("%s = %s\n", only_gates_sub->outputs[i], only_gates_sub->output_mappings[i]);
+        }
 
     }
 
