@@ -6,53 +6,70 @@
 
 void free_subsystem(Subsystem *s) {
 
-    // free inputs
-    if (s->inputs != NULL) {
-        for(int i=0; i<s->_inputc; i++) {
-            if (s->inputs[i] != NULL) {
-                free(s->inputs[i]);
+    if (s!=NULL) {
+
+        // free inputs
+        if (s->inputs != NULL) {
+            for(int i=0; i<s->_inputc; i++) {
+                if (s->inputs[i] != NULL) {
+                    free(s->inputs[i]);
+                }
+            }
+            free(s->inputs);
+        }
+
+        // free outputs
+        if (s->outputs != NULL) {
+            for(int i=0; i<s->_outputc; i++) {
+                if (s->outputs[i] != NULL) {
+                    free(s->outputs[i]);
+                }
+            }
+            free(s->outputs);
+        }
+
+        // free name
+        if (s->name != NULL) {
+            free(s->name);
+        }
+
+        // free component list
+        if (s->components != NULL) {
+            Node *c=s->components; 
+            while ( c!=NULL) {
+                s->components = c->next;
+                free_node(c);
+                c=s->components;
             }
         }
-        free(s->inputs);
-    }
 
-    // free outputs
-    if (s->outputs != NULL) {
-        for(int i=0; i<s->_outputc; i++) {
-            if (s->outputs[i] != NULL) {
-                free(s->outputs[i]);
+        // free output mapping str list
+        if (s->output_mappings != NULL) {
+            for (int i=0; i<s->_outputc; i++) {
+                if (s->output_mappings[i] != NULL) {
+                    free(s->output_mappings[i]);
+                }
+            }
+            free(s->output_mappings);
+        }
+
+        // free the actual output mappings (if needed)
+        if (s->is_standard) {
+            if (s->o_maps != NULL) {
+                for (int i=0; i<s->_outputc; i++) {
+                    if (s->o_maps[i] != NULL) {
+                        free(s->o_maps[i]);
+                    }
+                }
+                free(s->o_maps);
             }
         }
-        free(s->outputs);
+
+        // free s itself
+        free(s);
+
     }
 
-    // free name
-    if (s->name != NULL) {
-        free(s->name);
-    }
-
-    // free component list
-    if (s->components != NULL) {
-        Node *c=s->components; 
-        while ( c!=NULL) {
-            s->components = c->next;
-            free_node(c);
-            c=s->components;
-        }
-    }
-
-    // free output mapping list
-    if (s->output_mappings != NULL) {
-        for (int i=0; i<s->_outputc; i++) {
-            if (s->output_mappings[i] != NULL) {
-                free(s->output_mappings[i]);
-            }
-        }
-        free(s->output_mappings);
-    }
-
-    // free s itself
-    free(s);
 }
 
 int subsys_hdr_to_str(Subsystem* s, char* str, int n) {
@@ -153,18 +170,35 @@ int str_to_subsys_hdr(char *str, Subsystem *s, int n) {
 
 void free_component(Component *c) {
 
-    // free inputs
-    if (c->inputs != NULL) {
-        for(int i=0; i<c->_inputc; i++) {
-            if (c->inputs[i] != NULL) {
-                free(c->inputs[i]);
+    if (c!= NULL) {
+
+        // check the type and free as needed
+        if (c->is_standard) {
+
+            // then it has output mappings
+            if (c->i_maps != NULL) {
+                for(int i=0; i<c->_inputc; i++) {
+                    if (c->i_maps[i] != NULL) {
+                        free(c->i_maps[i]);
+                    }
+                }
+                free(c->i_maps);
             }
         }
-        free(c->inputs);
-    }
 
-    // free c itself
-    free(c);
+        // in any case there will be inputs
+        if (c->inputs != NULL) {
+            for(int i=0; i<c->_inputc; i++) {
+                if (c->inputs[i] != NULL) {
+                    free(c->inputs[i]);
+                }
+            }
+            free(c->inputs);
+        }
+
+        // free c itself
+        free(c);
+    }
 }
 
 int comp_to_str(Component *c, char *str, int n) {
@@ -494,6 +528,7 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
 
                 // parse the first line into a subsystem header
                 Subsystem *s = malloc(sizeof(Subsystem));
+                s->is_standard = 1;
                 s->components = NULL;
                 if ( (_en=str_to_subsys_hdr(line, s, strlen(line))) ) {
                     printf("error reading\n");
@@ -502,6 +537,7 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
 
                 // also allocate memory for the output mappings of the subsystem, now that we know how many there should be
                 s->output_mappings = malloc(sizeof(char*) * s->_outputc);
+                s->o_maps = malloc(sizeof(Mapping*) * s->_outputc);
 
                 // read the next line
                 if ( (nread = read_line_from_file(&line, filename, &len, offset)) == -1 ) {
@@ -548,13 +584,45 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
                         s->output_mappings[index] = malloc(strlen(_line)+1);
                         strncpy(s->output_mappings[index], _line, strlen(_line)+1);
                     
-                    
+                        // also create the actual mapping
+                        s->o_maps[index] = malloc(sizeof(Mapping));
+
+                        // find if it is an input or a component
+                        int map_index = -1;
+                        if ( (map_index=contains(s->_inputc, s->inputs, s->output_mappings[index])) != -1 ) {
+
+                            s->o_maps[index]->type = SUBSYS_INPUT;
+                            s->o_maps[index]->index = map_index;
+                        } else {
+                            
+                            // if it is not an input of the subsystem, then it is the ID of another
+                            // component. we need to remove the prefix and check against the IDs of
+                            // the rest of the components.
+
+                            // first remove the prefix (and the underscore) and cast to int
+                            int outmap_comp_id = atoi(s->output_mappings[index]+strlen(COMP_ID_PREFIX));
+
+                            map_index = 0;
+                            Node *cur = s->components;
+                            while (cur != NULL) {
+                                if (cur->comp->id == outmap_comp_id) {
+                                    break;
+                                }
+                                map_index++;
+                                cur = cur->next;
+                            }
+
+                            // create the mapping
+                            s->o_maps[index]->type = SUBSYS_COMP;
+                            s->o_maps[index]->index = map_index;
+                        }
+
                     }
 
                     // if it starts with a component declaration, create a component from it and add it to the subsystem
                     else if (starts_with(line, COMP_ID_PREFIX)) {
                         Component *c = malloc(sizeof(Component));
-                        if ( (_en=str_to_comp(line, c, strlen(line), lookup_lib)) ) {
+                        if ( (_en=str_to_comp(line, c, strlen(line), lookup_lib, s, 1)) ) {
                             fprintf(stderr, "%s:%d: copmponent parsing failed in line [%s]\n", filename, line_no, line);
                             return _en;
                         }
@@ -655,7 +723,7 @@ Standard* search_in_lib(Library *lib, char *name) {
     return NULL;
 }
 
-int str_to_comp(char *str, Component *c, int n, Library *lib) {
+int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int is_standard) {
 
     if (str==NULL || c==NULL) {
         return NARG;
@@ -684,6 +752,54 @@ int str_to_comp(char *str, Component *c, int n, Library *lib) {
     c->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
     c->_inputc = str_to_list(_raw_inputs, &(c->inputs), IN_OUT_DELIM);
 
+    c->is_standard=is_standard;
+
+    // if needed, take care of the input mappings
+    if ( (s!=NULL) && is_standard ) {
+        
+        // allocate space for the list
+        c->i_maps = malloc(sizeof(Mapping*) * c->_inputc);
+
+        // create each individual mapping
+        for (int i=0; i<c->_inputc; i++) {
+
+            // allocate space for each individual mapping
+            c->i_maps[i] = malloc(sizeof(Mapping));
+            
+            // find if it is an input or a component
+            int index = -1;
+            if ( (index=contains(s->_inputc, s->inputs, c->inputs[i])) != -1 ) {
+
+                c->i_maps[i]->type = SUBSYS_INPUT;
+                c->i_maps[i]->index = index;
+            } else {
+                
+                // if it is not an input of the subsystem, then it is the ID of another
+                // component. we need to remove the prefix and check against the IDs of
+                // the rest of the components.
+
+                // first remove the prefix (and the underscore) and cast to int
+                int input_id = atoi(c->inputs[i]+strlen(COMP_ID_PREFIX));
+
+                index = 0;
+                Node *cur = s->components;
+                while (cur != NULL) {
+                    if (cur->comp->id == input_id) {
+                        break;
+                    }
+                    index++;
+                    cur = cur->next;
+                }
+
+                // create the mapping
+                c->i_maps[i]->type = SUBSYS_COMP;
+                c->i_maps[i]->index = index;
+                printf("mapping input: %s to %s (which is component with id %d, because %d)\n", c->inputs[i], c->inputs[i], c->i_maps[i]->index, input_id);
+
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -709,4 +825,16 @@ int subsys_add_comp(Subsystem *s, Component *c) {
     s->_tail = n;
 
     return 0;
+}
+
+Node *move_in_list(int x, Node *list) {
+
+    // move x positions in the list as long as they are valid
+    while(x > 0) {
+        if (list == NULL) return NULL;
+        list = list->next;
+        x--;
+    }
+
+    return list;
 }

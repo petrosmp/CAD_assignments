@@ -46,6 +46,34 @@ enum STANDARD_TYPE {
 };
 
 /**
+ * Each input/output in a standard subsystem's component is mapped to either
+ * an input of the subsystem itself or to another gate (or subsystem,
+ * but ultimately a gate).
+*/
+enum MAPPING_TYPE {
+    SUBSYS_INPUT,   /* The input/output is coming from the subsystem's input  list */
+    SUBSYS_COMP     /* The input/output is another component (gate) in the subsystem */
+};
+
+/**
+ * A component contained in a standard subsystem has a dynamic way of
+ * mapping its inputs/outputs to the subsystem, so that with any given
+ * set of inputs to the subsystem, the component's inputs/outputs can
+ * be set accordingly.
+ * 
+ * Let c be a component contained in a subsystem s. Then c can have in
+ * each of its inputs either an input of s or another component of s
+ * (components are assumed to be gates (which is a safe assumption to
+ * make, since everything can ultimately be "compiled" down to gates),
+ * which means that they only have one input.).
+ * The same is true for any output mapping of s.
+*/
+typedef struct mapping {
+    enum MAPPING_TYPE type;   /* The type of the mapping */
+    int index;              /* The index (either of the subsystems input or of the component) */
+} Mapping;
+
+/**
  * Nodes are the building blocks of the linked lists that contain
  * the standards defined in libraries.
  * 
@@ -105,6 +133,8 @@ typedef struct subsystem {
     struct node *components;    /* The list of the subsystem components (if it is a functional one) */
     struct node *_tail;         /* Pointer to the last component for O(1) insertion */
     char **output_mappings;     /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
+    int is_standard;            /* Boolean flag indicating whether the subsystem is a standard one */
+    Mapping **o_maps;           /* If the subsystem is a standard one, along the outputs there will be output mappings */
 } Subsystem;
 
 /**
@@ -130,6 +160,12 @@ typedef struct standard {
 /**
  * A component is an instance of a subsystem as part of a circuit.
  * 
+ * Components defined inside standard subsystems (read from libraries)
+ * will also have a series of input mappings to represent the way that
+ * the inputs of the component are mapped inside the subsystem (to other
+ * components or to the subsystem's inputs).
+ * 
+ * 
  * For example, the following part of a netlist describes a system
  * with 2 components (full adders). Each one has an id, is assosiated
  * with a subsystem and has some signals as inputs.
@@ -144,8 +180,10 @@ typedef struct standard {
 typedef struct component {
     int id;                 /* The unique ID of the component */
     Standard *prototype;    /* The subsystem that the component is an instance of */
+    int is_standard;        /* Boolean flag indicating whether the component is contained in a standard subsystem */
     int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
     char **inputs;          /* The names of the input signals of the component */
+    Mapping **i_maps;       /* If the component is part of a standard subsystem, along the inputs there will be input mappings */
 } Component;
 
 /**
@@ -337,12 +375,22 @@ Standard* search_in_lib(Library *lib, char *name);
  * given component. Will look for a standard of the component in
  * the given lib.
  * 
+ * The subsystem s is the subsystem that contains the component
+ * that is contained in str. This is needed so that in case the
+ * subsystem is a standard one (see is_standard), the function is
+ * able to determine whether the inputs are subsystem inputs or
+ * other subsystem components. 
+ * 
+ * is_standard is a flag that indicated whether the component that
+ * will be created is read from a library and should thus include
+ * input mappings or not.
+ * 
  * Returns:
  *  - 0 on success
  *  - NARG on failure because of null arguments
  *  - UNKNOWN_COMP on failure because of unseen component type
 */
-int str_to_comp(char *str, Component *c, int n, Library *lib);
+int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int is_standard);
 
 /**
  * Write the netlist for the given (functional) subsystem to the given file,
@@ -353,3 +401,9 @@ int str_to_comp(char *str, Component *c, int n, Library *lib);
  * is written to the file before the netlist to separate it from the previous one(s).
 */
 int netlist_to_file(Subsystem *s, char *filename, char *mode);
+
+/**
+ * Move x positions (forward) in the given list. Returns the node
+ * that is there if the move is valid, NULL otherwise
+*/
+Node *move_in_list(int x, Node *list);
