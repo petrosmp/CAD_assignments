@@ -407,3 +407,16 @@ int netlist_to_file(Subsystem *s, char *filename, char *mode);
  * that is there if the move is valid, NULL otherwise
 */
 Node *move_in_list(int x, Node *list);
+
+/**
+ * Given a standard for a subsystem read from a library, create an instance
+ * of it with the given inputs. The components in it and the outputs will be
+ * mapped according to the standard.
+ * 
+ * Returns the comp_id number that the next component should have.
+ * A negative value means some sort of error.
+ * 
+ * ns is assumed to be already allocated but nothing more.
+ * Must be freed by the caller.
+*/
+int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int starting_index);

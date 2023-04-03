@@ -794,7 +794,6 @@ int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int 
                 // create the mapping
                 c->i_maps[i]->type = SUBSYS_COMP;
                 c->i_maps[i]->index = index;
-                printf("mapping input: %s to %s (which is component with id %d, because %d)\n", c->inputs[i], c->inputs[i], c->i_maps[i]->index, input_id);
 
             }
         }
@@ -837,4 +836,131 @@ Node *move_in_list(int x, Node *list) {
     }
 
     return list;
+}
+
+int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int starting_index) {
+
+    if (std==NULL || inputs==NULL) {
+        return NARG;
+    }
+
+    if (std->type != SUBSYSTEM) {
+        return NARG;
+    }
+
+    int _en=0;
+
+    // copy the name, inputs and outputs of the standard into ns
+    ns->name = malloc(strlen(std->subsys->name)+1);
+    strncpy(ns->name, std->subsys->name, strlen(std->subsys->name)+1);
+
+
+    ns->_inputc = std->subsys->_inputc;
+    ns->inputs = malloc(sizeof(char*) * std->subsys->_inputc);
+    for(int i=0; i<std->subsys->_inputc; i++) {
+        ns->inputs[i] = malloc(strlen(inputs[i])+1);
+        strncpy(ns->inputs[i], inputs[i], strlen(inputs[i])+1);
+    }
+
+    ns->_outputc = std->subsys->_outputc;
+    ns->outputs = malloc(sizeof(char*) * std->subsys->_outputc);
+    for(int i=0; i<std->subsys->_outputc; i++) {
+        ns->outputs[i] = malloc(strlen(std->subsys->outputs[i])+1);
+        strncpy(ns->outputs[i], std->subsys->outputs[i], strlen(std->subsys->outputs[i])+1);
+    }
+
+    // mark the new subsystem as non-standard
+    ns->is_standard = 0;
+
+    // loop through the components of the prototype
+    int comp_id = starting_index;
+    Node *cur = std->subsys->components;
+    ns->components = NULL;
+    while (cur != NULL) {
+
+        // allocate memory for the component
+        Component *comp = malloc(sizeof(Component));
+        comp->id = comp_id;
+        comp->is_standard = 0;
+        comp->prototype = cur->comp->prototype;
+
+        // allocate memory for the inputs of the component
+        comp->inputs = malloc(sizeof(char*) * cur->comp->_inputc);
+        comp->_inputc = cur->comp->_inputc;
+
+        // create the inputs according to the prototype's mappings
+        for (int i=0; i<cur->comp->_inputc; i++) {
+            
+            // find the mapping
+            Mapping *map = cur->comp->i_maps[i];
+
+            // check the type of the mapping and act accordingly
+            if (map->type == SUBSYS_INPUT) {
+
+                // find the input that the mapping maps to and put its name in the corresponding slot
+                comp->inputs[i] = malloc(strlen(ns->inputs[map->index])+1);
+                strncpy(comp->inputs[i], ns->inputs[map->index], strlen(ns->inputs[map->index])+1);
+
+            } else if (map->type == SUBSYS_COMP) {
+
+                // find the component that the mapping maps to
+                Component *cmap = move_in_list(map->index, ns->components)->comp;
+
+                // allocate memory for the input in the component
+                comp->inputs[i] = malloc(digits(cmap->id)+2); // +1 for the U, +1 for the null byte
+                int offset=0;
+
+                // write the ID prefix
+                if ( (_en=write_at(comp->inputs[i], COMP_ID_PREFIX, offset, strlen(COMP_ID_PREFIX))) ) return _en;
+                offset += strlen(COMP_ID_PREFIX);
+
+                // write the mapping component's ID
+                snprintf(comp->inputs[i]+offset, digits(cmap->id)+2-offset, "%d ", cmap->id);
+
+            }
+
+        }
+
+        // add the node containing the component to the component list of the new subsystem
+        if ( (_en=subsys_add_comp(ns, comp)) ) return _en;
+
+        // advance the current node in the prototype's list and increment the ID
+        cur = cur->next;
+        comp_id++;
+    }
+
+    // also take care of the output mappings of the subsystem
+    ns->output_mappings = malloc(sizeof(char*) * std->subsys->_outputc);
+    for(int i=0; i<std->subsys->_outputc; i++) {
+
+        // find the mapping
+        Mapping *map = std->subsys->o_maps[i];
+
+        // check the type of the mapping and act accordingly
+        if (map->type == SUBSYS_INPUT) {
+
+            // find the input that the mapping maps to and put its name in the corresponding slot
+            ns->output_mappings[i] = malloc(strlen(ns->output_mappings[map->index])+1);
+            strncpy(ns->output_mappings[i], ns->output_mappings[map->index], strlen(ns->output_mappings[map->index])+1);
+
+        } else if (map->type == SUBSYS_COMP) {
+
+            // find the component that the mapping maps to
+            Component *cmap = move_in_list(map->index, ns->components)->comp;
+
+            // allocate memory for the output mapping
+            ns->output_mappings[i] = malloc(digits(cmap->id)+2); // +1 for the U, +1 for the null byte
+            int offset=0;
+
+            // write the ID prefix
+            if ( (_en=write_at(ns->output_mappings[i], COMP_ID_PREFIX, offset, strlen(COMP_ID_PREFIX))) ) return _en;
+            offset += strlen(COMP_ID_PREFIX);
+
+            // write the mapping component's ID
+            snprintf(ns->output_mappings[i]+offset, digits(cmap->id)+2-offset, "%d ", cmap->id);
+
+        }
+    }
+
+    return comp_id;
 }
