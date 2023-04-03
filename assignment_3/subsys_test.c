@@ -40,8 +40,8 @@ int main() {
             }
 
             printf("mapped to ");
-            for (int i=0; i<comp->_inputc; i++)  {
-                printf("%s ", comp->inputs[i]);
+            for (int i=0; i<comp->_inputc; i++) {
+                printf("%s (%c, %d) ", comp->inputs[i], comp->i_maps[i]->type==SUBSYS_INPUT?'I':'C', comp->i_maps[i]->index);
             }
             printf("respectively\n");
 
@@ -53,7 +53,7 @@ int main() {
         printf("and the following output mappings:\n");
 
         for(int i=0; i<c2->_outputc; i++) {
-            printf("\t%s <- %s\n", c2->outputs[i], c2->output_mappings[i]);
+            printf("\t%s <- %s (%c, %d)\n", c2->outputs[i], c2->output_mappings[i], c2->o_maps[i]->type==SUBSYS_INPUT?'I':'C', c2->o_maps[i]->index);
         }
 
 
