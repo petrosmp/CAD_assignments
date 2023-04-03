@@ -778,7 +778,7 @@ int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int 
                 // component. we need to remove the prefix and check against the IDs of
                 // the rest of the components.
 
-                // first remove the prefix (and the underscore) and cast to int
+                // first remove the prefix and cast to int
                 int input_id = atoi(c->inputs[i]+strlen(COMP_ID_PREFIX));
 
                 index = 0;
