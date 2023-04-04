@@ -1,0 +1,14 @@
+COMP FULL_ADDER5 ; IN: A4, A3, A2, A1, A0, B4, B3, B2, B1, B0, Cin ; OUT: S4, S3, S2, S1, S0, Cout
+BEGIN FULL_ADDER5 NETLIST
+U1 FULL_ADDER A0, B0, Cin
+U2 FULL_ADDER A1, B1, U1_COUT
+U3 FULL_ADDER A2, B2, U2_COUT
+U4 FULL_ADDER A3, B3, U3_COUT
+U5 FULL_ADDER A4, B4, U4_COUT
+S4 = U5_S
+S3 = U4_S
+S2 = U3_S
+S1 = U2_S
+S0 = U1_S   %% the pgogram does not check if the reference component exists, but checks if the output does
+Cout = U5_COUT
+END FULL_ADDER5 NETLIST

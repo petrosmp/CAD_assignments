@@ -4,7 +4,7 @@
 #include "netlist.h"
 #include "str_util.h"
 
-void free_subsystem(Subsystem *s) {
+void free_subsystem(Subsystem *s, int free_comp) {
 
     if (s!=NULL) {
 
@@ -34,11 +34,12 @@ void free_subsystem(Subsystem *s) {
         }
 
         // free component list
-        if (s->components != NULL) {
+        if (s->components != NULL && free_comp) {
+
             Node *c=s->components; 
             while ( c!=NULL) {
                 s->components = c->next;
-                free_node(c);
+                free_node(c, 1);
                 c=s->components;
             }
         }
@@ -393,32 +394,34 @@ void free_standard(Standard *s) {
         if (s->type == GATE) {
             free_gate(s->gate);
         } else if (s->type == SUBSYSTEM) {
-            free_subsystem(s->subsys);
+            if (s->subsys != NULL){
+                free_subsystem(s->subsys, 1);
+            }
         }
 
         free(s);
     }
 }
 
-void free_node(Node *n) {
+void free_node(Node *n, int complete) {
 
     if (n != NULL) {
 
-        if (n->type == STANDARD) {
-            free_standard(n->std);
-        } else if (n->type == COMPONENT) {
-            free_component(n->comp);
-        } else if (n->type == SUBSYSTEM_N) {
-
+        if (complete) {
+            if (n->type == STANDARD) {
+                free_standard(n->std);
+            } else if (n->type == COMPONENT) {
+                free_component(n->comp);
+            } else if (n->type == SUBSYSTEM_N) {
+                free_subsystem(n->subsys, 1);
+            }
         }
-        
-
 
         free(n);
     }
 }
 
-int add_to_lib(Library *lib, Standard* s) {
+int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type) {
 
     if (lib==NULL || s==NULL) {
         return NARG;
@@ -426,8 +429,16 @@ int add_to_lib(Library *lib, Standard* s) {
 
     // make the standard into a node
     Node *n = malloc(sizeof(Node));
-    n->type = STANDARD;
-    n->std = s;
+    if (is_standard) {
+        n->type = STANDARD;
+        n->std = (Standard*) s;
+    } else {
+        if (type == SUBSYSTEM) {
+            n->type = SUBSYSTEM_N;
+            n->subsys = (Subsystem*) s;
+        }
+    }
+
     n->next = NULL;
 
     // connect the new node to the library
@@ -481,7 +492,7 @@ int gate_lib_from_file(char *filename, Library* lib) {
                 s->defined_in = lib;
 
                 // ...and add the standard to the library
-                if ( (_en=add_to_lib(lib, s)) ) return _en;
+                if ( (_en=add_to_lib(lib, s, 1, GATE)) ) return _en;
             }
         }
 
@@ -623,7 +634,7 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
                     else if (starts_with(line, COMP_ID_PREFIX)) {
                         Component *c = malloc(sizeof(Component));
                         if ( (_en=str_to_comp(line, c, strlen(line), lookup_lib, s, 1)) ) {
-                            fprintf(stderr, "%s:%d: copmponent parsing failed in line [%s]\n", filename, line_no, line);
+                            fprintf(stderr, "%s:%d: component parsing failed\n", filename, line_no);
                             return _en;
                         }
                         if ( (_en=subsys_add_comp(s, c)) ) return _en;
@@ -653,7 +664,7 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
                 std->type = SUBSYSTEM;
                 std->subsys = s;
                 std->defined_in = lib;
-                if ( (_en=add_to_lib(lib, std)) ) return _en;
+                if ( (_en=add_to_lib(lib, std, 1, SUBSYSTEM)) ) return _en;
             }
 
         }
@@ -674,7 +685,7 @@ void free_lib(Library *lib) {
             Node *cur = lib->contents;
             while (cur != NULL) {
                 lib->contents = cur->next;
-                free_node(cur);
+                free_node(cur, 1);
                 cur = lib->contents;
             }
         }
@@ -963,4 +974,268 @@ int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int s
     }
 
     return comp_id;
+}
+
+/**
+ * Given a netlist (in the form of a library in order to avoid creating another
+ * struct), parse the subsystems in it, and create a netlist for each one using
+ * only gates (translate each subsystem all the way down to the gates it is defined
+ * as in the library it is defined in).
+ * 
+ * Stores the translated compponents in dest, which is assumed to be allocated.
+ * 
+ * Starts the component ID numbering from the given one.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - -1 on failure
+*/
+int netlist_to_gate_only(Library *dest, Library *netlist, int component_id) {
+
+    // set the destination info
+    dest->contents = NULL;
+    dest->file = NULL;
+    dest->type = SUBSYSTEM;
+    dest->_tail = NULL;
+
+    // iterate over the contents of the netlist
+    Node *node_ptr = netlist->contents;
+    while (node_ptr!=NULL) {
+
+        // this is the subsystem whose netlist we want to boil down to just gates
+        Subsystem *target = node_ptr->std->subsys;
+
+        // count the compponents in the target subsystem
+        int subsys_count = 0;
+        Node *_comp = target->components;
+        while (_comp != NULL) {
+            _comp = _comp->next;
+            subsys_count++;
+        }
+
+        // allocate space for the new, gate only subsystem
+        Subsystem *only_gates_sub = malloc(sizeof(Subsystem));
+
+        // initialize the fields of the new subsystem to match the old one
+        only_gates_sub->is_standard = 0;
+        only_gates_sub->name = malloc(strlen(target->name)+1);
+        strncpy(only_gates_sub->name, target->name, strlen(target->name)+1);
+        only_gates_sub->_inputc = target->_inputc;
+        only_gates_sub->inputs = malloc(sizeof(char*) * target->_inputc);
+        only_gates_sub->_outputc = target->_outputc;
+        only_gates_sub->outputs = malloc(sizeof(char*) * target->_outputc);
+        for(int i=0; i<target->_inputc; i++){
+            only_gates_sub->inputs[i] = malloc(strlen(target->inputs[i])+1);
+            strncpy(only_gates_sub->inputs[i], target->inputs[i], strlen(target->inputs[i])+1);
+        }
+        for(int i=0; i<target->_outputc; i++){
+            only_gates_sub->outputs[i] = malloc(strlen(target->outputs[i])+1);
+            strncpy(only_gates_sub->outputs[i], target->outputs[i], strlen(target->outputs[i])+1);
+        }
+        only_gates_sub->components = NULL;
+
+        // the components that get translated to gates will be stored as subsystems
+        // in this array, so that if any component refers to the output of another,
+        // we can find both the referred one and the mapping of the output
+        Subsystem **subsystems = malloc(sizeof(Subsystem*) * subsys_count);
+        int s_i = 0; // the index we will use for the array above
+
+        // iterate over the components of the old subsystem, resolving input mappings
+        // like UXX_S0 to the gate that is mapped to output S0 of component XX
+        _comp = target->components;
+        while (_comp != NULL) {
+
+            // the component (we use the nodes to iterate)
+            Component *comp = _comp->comp;
+
+            // the (resolved) inputs that will be passed to to create_custom()
+            char **inputs = malloc(sizeof(char*) * comp->_inputc);
+
+            // iterate over the inputs of the component
+            for (int i=0; i<comp->_inputc; i++)  {
+
+                // find the mapping for each input
+                Mapping *map = comp->i_maps[i];
+
+                // if it maps to another component
+                if (map->type == SUBSYS_COMP) {
+
+                    // find out the component that it maps to
+                    Component *cmap = move_in_list(map->index, target->components)->comp;
+
+                    // assume all components are subsystems, so no else
+                    if (cmap->prototype->type == SUBSYSTEM) {
+                        
+                        // then after the UXX_ in inputs[i] there is the name of the output we are interested in
+                        char *o_name = comp->inputs[i]+strlen(COMP_ID_PREFIX)+digits(map->index+1)+1;
+
+                        // find the index of that output in the mapping
+                        int index = contains(cmap->prototype->subsys->_outputc, cmap->prototype->subsys->outputs, o_name);
+                        if (index == -1) {
+                            char *b = malloc(sizeof(MAX_LINE_LEN));
+                            int b_w=0;
+                            write_list_at(cmap->prototype->subsys->_outputc, cmap->prototype->subsys->outputs, ", ", b, 0, MAX_LINE_LEN, &b_w);
+                            printf("Could not find output %s in the outputs of subsystem %s (%s)!\n", o_name, cmap->prototype->subsys->name, b);
+                            free(b);
+                            return -1;
+                        }
+                        // find the output mapping for that output
+                        char *m = subsystems[map->index]->output_mappings[index];
+
+                        // put it in the input list
+                        inputs[i] = malloc(strlen(m)+1); // +1 for the null byte
+                        strncpy(inputs[i], m, strlen(m)+1);
+                    }
+
+                } else if (map->type == SUBSYS_INPUT) {
+
+                    // find the input of the subsystem that the mapping maps to
+                    char *m = target->inputs[map->index];
+                    
+                    // put it in the input list
+                    inputs[i] = malloc(strlen(m)+1); // +1 for the null byte
+                    strncpy(inputs[i], m, strlen(m)+1);
+
+                }
+            }
+            
+            /*
+            Useful for debugging, can print the inputs of each subsystem and see if the gates are ok
+            
+            fprintf(stderr, "inputs for U%d, %s are the following: ", comp->id, comp->prototype->subsys->name);
+            for (int i=0; i<comp->_inputc; i++) {
+                fprintf(stderr, "%s ", inputs[i]);
+            }
+            fprintf(stderr, "\n");
+            */
+            
+            /*
+                we now have a complete list of inputs for each component
+                we need to create the netlist of that component with the inputs we now have
+                and add it to the subsystems array
+            */
+            subsystems[s_i] = malloc(sizeof(Subsystem));
+            component_id = create_custom(subsystems[s_i], comp->prototype, comp->_inputc, inputs, component_id);
+
+            // free the input list
+            for(int i=0; i<comp->_inputc; i++) free(inputs[i]);
+
+            // add every gate to the gate-only subsystem, freeing the used nodes in the process
+            Node *c_c = subsystems[s_i]->components;
+            while (c_c != NULL) {
+                subsys_add_comp(only_gates_sub, c_c->comp);
+                Node *tmp = c_c->next;
+                free_node(c_c, 0);
+                c_c = tmp;
+            }
+
+            // move on to the next subsystem
+            _comp = _comp->next;
+            s_i++;
+            free(inputs);
+
+        }
+        
+        // we have now filled the subsystems array with subsystems whose components are gates and numbered consistently
+
+        // now we need to map the outputs of target to gate only things
+        only_gates_sub->output_mappings = malloc(sizeof(char*) * only_gates_sub->_outputc); // +1 for the null byte
+
+        for(int i=0; i<target->_outputc; i++) {
+            
+            Mapping *om = target->o_maps[i];
+
+            // assuming all mappings are to gates and none is to input
+            if (om->type != SUBSYS_COMP) return -1;
+
+            // find out the component that the mapping maps to, which will now be a subsystem in subsystems
+            Subsystem *mapped = subsystems[om->index];
+
+            // assume everything in the subsystems[] array is a subsystem (and not a gate) (TODO: FIX)
+                        
+            // then after the UXX_ in output_mappings[i] there is the name of the output we are interested in
+            // find the name of the output
+            char *o_name = target->output_mappings[i]+strlen(COMP_ID_PREFIX)+digits(om->index+1)+1;
+
+            // find the index of that output in the mapping
+            int index = contains(mapped->_outputc, mapped->outputs, o_name);
+            if (index == -1) {
+                char *buf = malloc(sizeof(MAX_LINE_LEN));
+                int b_w=0;
+                write_list_at(mapped->_outputc, mapped->outputs, ", ", buf, 0, MAX_LINE_LEN, &b_w);
+                printf("Could not find output '%s' in the outputs of subsystem '%s' (%s)!\n", o_name, mapped->name, buf);
+                free(buf);
+                return -1;
+            }
+            // find the output mapping for that output
+            char *m = mapped->output_mappings[index];
+
+            // put it in the output list
+            only_gates_sub->output_mappings[i] = malloc(strlen(m)+1); // +1 for the null byte
+            strncpy(only_gates_sub->output_mappings[i], m, strlen(m)+1);
+
+        }
+
+        // add the gate-only subsystem to the destination library
+        int _en=0;
+        if ( (_en=add_to_lib(dest, only_gates_sub, 0, SUBSYSTEM)) ) return _en;
+
+        // cleanup the array that was used for the components of this subsystem
+        for(int i=0; i<subsys_count; i++) {
+            free_subsystem(subsystems[i], 0);
+        }
+        free(subsystems);
+
+        // advance to the next subsystem to be translated
+        node_ptr = node_ptr->next;
+
+
+    }
+    return 0;
+}
+
+void lib_to_file(Library *lib, char *filename, char *mode) {
+
+    FILE *fp = fopen(filename, mode);
+
+    // print the stuff
+    for (Node *n = lib->contents; n!=NULL; n=n->next) {
+
+        // print the header line
+        char *buf = malloc(MAX_LINE_LEN);
+        subsys_hdr_to_str(n->subsys, buf, MAX_LINE_LEN);
+        fprintf(fp, "%s\n", buf);
+        free(buf);
+
+        // print the BEGIN ... NETLIST line
+        fprintf(fp, "BEGIN %s NETLIST\n", n->subsys->name);
+
+        // print the components
+        for (Node *n_n=n->subsys->components; n_n!=NULL; n_n=n_n->next) {
+
+
+            Component *comp = n_n->comp;
+            fprintf(fp, "U%d %s ", comp->id, comp->prototype->gate->name);
+
+            for (int i=0; i<comp->_inputc; i++) {
+                fprintf(fp, "%s ", comp->inputs[i]);
+            }
+            fprintf(fp, "\n");
+            if(comp->id % 5 == 0) {
+                fprintf(fp, "\n");
+            }
+        }
+
+        // print the output mappings
+        for (int i=0; i<n->subsys->_outputc; i++) {
+            fprintf(fp, "%s = %s\n", n->subsys->outputs[i], n->subsys->output_mappings[i]);
+        }
+
+        // print the END ... NETLIST line
+        fprintf(fp, "END %s NETLIST\n", n->subsys->name);
+
+    }
+
+    fclose(fp);
+
 }

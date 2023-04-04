@@ -224,8 +224,11 @@ void free_standard(Standard *s);
 
 /**
  * Properly free up the memory allocated for and used by a node.
+ * 
+ * complete is a flag indicating whether the contents of the node should
+ * be deleted too.
 */
-void free_node(Node *n);
+void free_node(Node *n, int complete);
 
 /**
  * Add the given standard to (the end of) the given library.
@@ -240,7 +243,7 @@ void free_node(Node *n);
  *  - 0 on success
  *  - NARG on failure because of null arguments.
 */
-int add_to_lib(Library *lib, Standard* s);
+int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type);
 
 /**
  * Parse the contents of a file into standards and store them in the given
@@ -269,8 +272,11 @@ void free_lib(Library *lib);
 /**
  * Free the memory that was allocated for subsystem s and all its
  * members.
+ * 
+ * free_comp is a flag that indicates whether the individual components
+ * of the subsystem should be freed.
 */
-void free_subsystem(Subsystem *s);
+void free_subsystem(Subsystem *s, int free_comp);
 
 /**
  * Store a human readable string representation of the header (*)
@@ -420,3 +426,24 @@ Node *move_in_list(int x, Node *list);
  * Must be freed by the caller.
 */
 int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int starting_index);
+
+/**
+ * Given a netlist (in the form of a library in order to avoid creating another
+ * struct), parse the subsystems in it, and create a netlist for each one using
+ * only gates (translate each subsystem all the way down to the gates it is defined
+ * as in the library it is defined in).
+ * 
+ * Stores the translated compponents in dest, which is assumed to be allocated.
+ * 
+ * Starts the component ID numbering from the given one.
+ * 
+ * Returns:
+ *  - 0 on success
+ *  - -1 on failure
+*/
+int netlist_to_gate_only(Library *dest, Library *netlist, int component_id);
+
+/**
+ * Print the contents of the given library in the file with the given filename.
+*/
+void lib_to_file(Library *lib, char *filename, char *mode);

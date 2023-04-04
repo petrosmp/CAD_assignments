@@ -92,7 +92,7 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
         snprintf((*n_bit_fa)->inputs[i], MAX_INPUT_LEN, "B%d", n-(i-n)-1);
     }
     (*n_bit_fa)->inputs[2*n] = malloc(MAX_INPUT_LEN);
-    snprintf((*n_bit_fa)->inputs[2*n], strlen("Cin")+1, "Cin");
+    snprintf((*n_bit_fa)->inputs[2*n], strlen("CIN")+1, "CIN");
 
     // allocate memory for the outputs...
     (*n_bit_fa)->_outputc = n+1;
@@ -104,7 +104,7 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
         snprintf((*n_bit_fa)->outputs[i], MAX_INPUT_LEN, "S%d", n-i-1);
     }
     (*n_bit_fa)->outputs[n] = malloc(MAX_INPUT_LEN);
-    snprintf((*n_bit_fa)->outputs[n], strlen("Cout")+1, "Cout");
+    snprintf((*n_bit_fa)->outputs[n], strlen("COUT")+1, "COUT");
 
     // set the type
     (*n_bit_fa)->type = FUNCTIONAL;
@@ -141,7 +141,7 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
             
         if (i==0) {
             // for the first full adder, Cin is the circuit's Cin
-            snprintf((*n_bit_fa)->components[i]->inputs[2], MAX_INPUT_LEN, "Cin");
+            snprintf((*n_bit_fa)->components[i]->inputs[2], MAX_INPUT_LEN, "CIN");
         } else {
             // for the rest, Cin is the Cout of the previous full adder
             snprintf(
@@ -157,10 +157,10 @@ int create_nbit_full_adder(int n, Subsystem **n_bit_fa, Subsystem *reference) {
 
     for (int i=0; i<(*n_bit_fa)->_outputc-1; i++) {
         (*n_bit_fa)->output_mappings[i] = malloc(MAX_INPUT_LEN);
-        snprintf((*n_bit_fa)->output_mappings[i], MAX_INPUT_LEN, "U%d_S", n-i-1);
+        snprintf((*n_bit_fa)->output_mappings[i], MAX_INPUT_LEN, "U%d_S", n-i);
     }
     (*n_bit_fa)->output_mappings[n] = malloc(MAX_INPUT_LEN);
-    snprintf((*n_bit_fa)->output_mappings[n], MAX_INPUT_LEN, "U%d_Cout", (*n_bit_fa)->_componentc-1);
+    snprintf((*n_bit_fa)->output_mappings[n], MAX_INPUT_LEN, "U%d_COUT", (*n_bit_fa)->_componentc);
 
     return 0;
 }
