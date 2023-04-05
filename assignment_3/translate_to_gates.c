@@ -14,25 +14,25 @@
 int main() {
 
     // read the component library where the gates are defined
-    Library *gate_lib = malloc(sizeof(Library));
+    Netlist *gate_lib = malloc(sizeof(Netlist));
     if (gate_lib_from_file(GATE_LIB_NAME, gate_lib)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
     // read the subsystem library where the single-bit full adder is defined
-    Library *lib = malloc(sizeof(Library));
+    Netlist *lib = malloc(sizeof(Netlist));
     if (subsys_lib_from_file(SUBSYS_LIB_NAME, lib, gate_lib)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
     // read the netlist where the n-bit full adder is described
-    Library *netlist = malloc(sizeof(Library));
+    Netlist *netlist = malloc(sizeof(Netlist));
     if (subsys_lib_from_file(NETLIST_NAME, netlist, lib)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
     // create a netlist that contains everything the one above does, but implemented only with gates
-    Library *only_gates_lib = malloc(sizeof(Library));
+    Netlist *only_gates_lib = malloc(sizeof(Netlist));
     if (netlist_to_gate_only(only_gates_lib, netlist, 1)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;

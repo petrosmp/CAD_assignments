@@ -10,7 +10,7 @@
 
 int main(int argc, char *argv[]) {
 
-    Library *lib = malloc(sizeof(Library));
+    Netlist *lib = malloc(sizeof(Netlist));
     gate_lib_from_file(FILENAME, lib);
 
     Standard *a = search_in_lib(lib, argv[1]);

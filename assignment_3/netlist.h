@@ -97,12 +97,12 @@ typedef struct node {
  * It contains a linked list with the standards it contains, as well as
  * the name of the file in which they were defined.
 */
-typedef struct lib {
+typedef struct netlist {
     enum STANDARD_TYPE type;    /* The possible types are the same  */
     Node *contents;             /* The contents of the library */
     Node *_tail;                /* The last node of the list, for O(1) insertions */
     char *file;                 /* The file the library was defined in */
-} Library;
+} Netlist;
 
 /**
  * A gate is assumed to be the basic building block of everything. It only
@@ -153,7 +153,7 @@ typedef struct standard {
         Subsystem* subsys;  /* The subsystem this standard defines */
         Gate* gate;         /* The gate this standard defines */
     };
-    Library *defined_in;    /* The library in which this standard is defined */
+    Netlist *defined_in;    /* The library in which this standard is defined */
 
 } Standard;
 
@@ -243,7 +243,7 @@ void free_node(Node *n, int complete);
  *  - 0 on success
  *  - NARG on failure because of null arguments.
 */
-int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type);
+int add_to_lib(Netlist *lib, void* s, int is_standard, enum STANDARD_TYPE type);
 
 /**
  * Parse the contents of a file into standards and store them in the given
@@ -261,13 +261,13 @@ int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type);
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
 */
-int gate_lib_from_file(char *filename, Library* lib);
+int gate_lib_from_file(char *filename, Netlist* lib);
 
 /**
  * Properly free up the memorey allocated for and used by a library and
  * its members.
 */
-void free_lib(Library *lib);
+void free_lib(Netlist *lib);
 
 /**
  * Free the memory that was allocated for subsystem s and all its
@@ -343,7 +343,7 @@ int subsys_add_comp(Subsystem *s, Component *c);
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
 */
-int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib);
+int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib);
 
 /**
  * Properly free up the memory allocated for component c and its
@@ -373,7 +373,7 @@ int comp_to_str(Component *c, char *str, int n);
  * 
  * Returns a pointer to the standard if found, NULL otherwise.
 */
-Standard* search_in_lib(Library *lib, char *name);
+Standard* search_in_lib(Netlist *lib, char *name);
 
 /**
  * Given a string of length n (if it is longer, only the first n
@@ -396,7 +396,7 @@ Standard* search_in_lib(Library *lib, char *name);
  *  - NARG on failure because of null arguments
  *  - UNKNOWN_COMP on failure because of unseen component type
 */
-int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int is_standard);
+int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard);
 
 /**
  * Write the netlist for the given (functional) subsystem to the given file,
@@ -441,9 +441,9 @@ int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int s
  *  - 0 on success
  *  - -1 on failure
 */
-int netlist_to_gate_only(Library *dest, Library *netlist, int component_id);
+int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id);
 
 /**
  * Print the contents of the given library in the file with the given filename.
 */
-void lib_to_file(Library *lib, char *filename, char *mode);
+void lib_to_file(Netlist *lib, char *filename, char *mode);

@@ -10,7 +10,7 @@
 
 int main() {
 
-    Library *lib = malloc(sizeof(Library));
+    Netlist *lib = malloc(sizeof(Netlist));
 
     gate_lib_from_file(FILENAME, lib);
 

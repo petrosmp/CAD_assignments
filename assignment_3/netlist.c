@@ -421,7 +421,7 @@ void free_node(Node *n, int complete) {
     }
 }
 
-int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type) {
+int add_to_lib(Netlist *lib, void* s, int is_standard, enum STANDARD_TYPE type) {
 
     if (lib==NULL || s==NULL) {
         return NARG;
@@ -453,7 +453,7 @@ int add_to_lib(Library *lib, void* s, int is_standard, enum STANDARD_TYPE type) 
     return 0;
 }
 
-int gate_lib_from_file(char *filename, Library* lib) {
+int gate_lib_from_file(char *filename, Netlist* lib) {
     
     if (filename == NULL || lib==NULL) {
         return NARG;
@@ -505,7 +505,7 @@ int gate_lib_from_file(char *filename, Library* lib) {
     return 0;
 }
 
-int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
+int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
     
     if (filename == NULL || lib==NULL) {
         return NARG;
@@ -676,7 +676,7 @@ int subsys_lib_from_file(char *filename, Library *lib, Library *lookup_lib) {
     return 0;
 }
 
-void free_lib(Library *lib) {
+void free_lib(Netlist *lib) {
 
     if (lib != NULL) {
 
@@ -700,7 +700,7 @@ void free_lib(Library *lib) {
     }
 }
 
-Standard* search_in_lib(Library *lib, char *name) {
+Standard* search_in_lib(Netlist *lib, char *name) {
 
 
     if (lib==NULL || name==NULL) {
@@ -734,7 +734,7 @@ Standard* search_in_lib(Library *lib, char *name) {
     return NULL;
 }
 
-int str_to_comp(char *str, Component *c, int n, Library *lib, Subsystem *s, int is_standard) {
+int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard) {
 
     if (str==NULL || c==NULL) {
         return NARG;
@@ -990,7 +990,7 @@ int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int s
  *  - 0 on success
  *  - -1 on failure
 */
-int netlist_to_gate_only(Library *dest, Library *netlist, int component_id) {
+int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
 
     // set the destination info
     dest->contents = NULL;
@@ -1194,7 +1194,7 @@ int netlist_to_gate_only(Library *dest, Library *netlist, int component_id) {
     return 0;
 }
 
-void lib_to_file(Library *lib, char *filename, char *mode) {
+void lib_to_file(Netlist *lib, char *filename, char *mode) {
 
     FILE *fp = fopen(filename, mode);
 

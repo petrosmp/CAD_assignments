@@ -14,18 +14,18 @@
 int main() {
 
 
-    Library *gate_lib = malloc(sizeof(Library));
+    Netlist *gate_lib = malloc(sizeof(Netlist));
     gate_lib_from_file(GATE_LIB_NAME, gate_lib);
 
-    Library *lib = malloc(sizeof(Library));
+    Netlist *lib = malloc(sizeof(Netlist));
     subsys_lib_from_file(SUBSYS_LIB_NAME, lib, gate_lib);
 
-    Library *netlist = malloc(sizeof(Library));
+    Netlist *netlist = malloc(sizeof(Netlist));
     subsys_lib_from_file(NETLIST_NAME, netlist, lib);
 
     // node ptr is the node of FULL_ADDER5
     // create a subsystem that is just like the one that we are reading
-    Library *only_gates_lib = malloc(sizeof(Library));
+    Netlist *only_gates_lib = malloc(sizeof(Netlist));
     netlist_to_gate_only(only_gates_lib, netlist, 1);
 
     lib_to_file(only_gates_lib, OUTPUT_FILE, "w");
