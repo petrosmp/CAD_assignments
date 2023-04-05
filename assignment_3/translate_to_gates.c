@@ -8,8 +8,6 @@
 #define SUBSYS_LIB_NAME "subsystem.lib"
 #define NETLIST_NAME "netlist5.txt"
 #define OUTPUT_FILE "gates_only.txt"
-#define SIZE 100
-
 
 int main() {
 
