@@ -4,10 +4,10 @@
 #include "netlist.h"
 #include "str_util.h"
 
-#define GATE_LIB_NAME "component.lib"
+#define GATE_LIB_NAME   "component.lib"
 #define SUBSYS_LIB_NAME "subsystem.lib"
-#define NETLIST_NAME "netlist5.txt"
-#define OUTPUT_FILE "gates_only.txt"
+#define NETLIST_NAME    "netlist5.txt"
+#define OUTPUT_FILE     "gates_only.txt"
 
 int main() {
 
