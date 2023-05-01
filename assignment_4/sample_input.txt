@@ -1,0 +1,9 @@
+ENTITY adder IS
+VAR N = 3 %% Number of Bits in the Adder
+PORT ( IN A : SO , YOU , THINK      %% A, MSB TO LSB
+    IN B : CAN , TELL , HEAVEN      %% B, MSB TO LSB
+    IN Cin : FROM                   %% Cin
+    OUT S : HELL , BLUE , SKIES     %% Sum, MSB TO LSB
+    OUT Cout : PAIN                 %% Cout
+);
+END adder
