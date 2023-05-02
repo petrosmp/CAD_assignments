@@ -9,6 +9,7 @@
 #define GATE_LIB_NAME   "component.lib"
 #define SUBSYS_LIB_NAME "subsystem.lib"
 #define SINGLE_BIT_FA_NAME  "FULL_ADDER"
+#define OUTPUT_FILE "netlist.txt"
 
 #define ENTITY_START "ENTITY"       /* The string that indicates that an entity declaration starts in this line */
 #define ENTITY_END "END"            /* The string that indicates that an entity declaration ends in this line */
@@ -25,6 +26,9 @@
 Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
                                       char **outputs, int outputc, int nbits,
                                       Standard *single_bit_std);
+
+Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs,\
+                       int outputc);
 
 int main() {
 
@@ -261,6 +265,11 @@ int main() {
     }
 
 
+    // instantiate the full adder
+    Subsystem *instance = instantiate(nbit_std, input_signals, input_signals_c, output_signals, output_signals_c);
+
+    netlist_to_file(instance, OUTPUT_FILE, "w");
+
 
     free_str_list(input_names, input_names_c);
     free_str_list(input_signals, input_signals_c);
@@ -268,7 +277,9 @@ int main() {
     free_str_list(output_signals, output_signals_c);
     free(name);
 
+    free_subsystem(instance, 1);
     free_subsystem(nbit_std, 1);
+    
 
     free_lib(lib);
     free_lib(gate_lib);
@@ -277,7 +288,7 @@ int main() {
 }
 
 Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
-                                      char **outputs, int outputc, int nbits,
+                                      char **outputs, int outputc, int nbits,\
                                       Standard *single_bit_std) {
 
     Subsystem *new = malloc(sizeof(Subsystem));
@@ -384,5 +395,86 @@ Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
     new->output_mappings = NULL;
 
     return new;
+
+}
+
+Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs,\
+                       int outputc) {
+
+    Subsystem *instance = malloc(sizeof(Subsystem));
+
+    // check if null, if number of inputs/outputs the same, etc TODO
+
+    // set the name
+    instance->name = malloc(strlen(std->name)+1);
+    instance->is_standard = 0;
+    strncpy(instance->name, std->name, strlen(std->name)+1);
+
+    // set the inputs and outputs according to the given names
+    deepcopy_str_list(&(instance->inputs), inputs, inputc);
+    instance->_inputc = inputc;
+
+    deepcopy_str_list(&(instance->outputs), outputs, outputc);
+    instance->_outputc = outputc;
+
+    // create the components of the instance according to the standard
+    Node *nd = std->components;
+    instance->components = NULL;
+    while (nd != NULL) {
+
+        Component *comp = malloc(sizeof(Component));
+
+        comp->is_standard = 0;
+        comp->id = nd->comp->id;
+        comp->prototype = nd->comp->prototype;
+
+        // resolve the input mappings
+        comp->inputs = malloc(sizeof(char*) * comp->prototype->subsys->_inputc);
+        comp->_inputc = comp->prototype->subsys->_inputc;
+        for(int i=0; i<comp->prototype->subsys->_inputc; i++) {
+            
+            Mapping *m = nd->comp->i_maps[i];
+            char *tmp;
+            if (m->type == SUBSYS_INPUT) {
+                tmp = instance->inputs[m->index];
+                comp->inputs[i] = malloc(strlen(tmp)+1);
+                strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
+            } else if (m->type == SUBSYS_COMP) {
+                Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node
+                tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
+                sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
+                comp->inputs[i] = malloc(strlen(tmp)+1);
+                strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
+                free(tmp);
+            }
+
+        }
+
+        subsys_add_comp(instance, comp);
+
+        nd = nd->next;
+    }
+
+    // map the outputs according to the standard (resolve the mappings)
+    instance->output_mappings = malloc(sizeof(char*) * instance->_outputc);
+    for(int i=0; i<instance->_outputc; i++) {
+        
+        Mapping *m = std->o_maps[i];
+
+        if (m->type == SUBSYS_INPUT) {
+            instance->output_mappings[i] = malloc(strlen(instance->inputs[m->index])+1);
+            strncpy(instance->output_mappings[i], instance->inputs[m->index], strlen(instance->inputs[m->index])+1);
+        } else if (m->type == SUBSYS_COMP) {
+            Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node
+            char *tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
+            sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
+            instance->output_mappings[i] = malloc(strlen(tmp)+1);
+            strncpy(instance->output_mappings[i], tmp, strlen(tmp)+1);
+            free(tmp);
+        }
+
+    }
+
+    return instance;
 
 }
