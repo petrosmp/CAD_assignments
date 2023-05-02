@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include "netlist.h"
 #include "str_util.h"
 
@@ -23,18 +24,63 @@
 #define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
 #define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
 
-Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
-Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);
+void usage(char *name);
+Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
+Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);
 
-int main() {
+int main(int argc, char *argv[]) {
 
-    
-    char *filename = FILENAME;
+    // parse command line arguments to see if any default overriding is needed
+    char ch;
+    char *input = FILENAME;
+    char *output = OUTPUT_FILE;
+    char *gate_lib_name = GATE_LIB_NAME;
+    char *subsys_lib_name = SUBSYS_LIB_NAME;
+    char *single_bit_fa_name = SINGLE_BIT_FA_NAME;
+    while ((ch = getopt(argc, argv, "f:g:s:o:n:h")) != -1) {
+		switch (ch) {
+			case 'f':
+				input = optarg;
+				break;
+            case 'g':
+				gate_lib_name = optarg;
+				break;
+            case 's':
+				subsys_lib_name = optarg;
+				break;
+            case 'o':
+				output = optarg;
+				break;
+            case 'n':
+				single_bit_fa_name = optarg;
+				break;
+			default:
+                usage(argv[0]);
+                exit(0);
+		}
+	}
 
-    char *line = NULL;  // no need to malloc it, getline() does that for us (and also reallocs if needed) 
-    int nread = 0;
-    int offset = 0;
-    size_t len = 0;
+    /***************************************************************************************\
+     *                                                                                      *
+     * The input format as presented in the project specification contains two (different)  *
+     * stages of writing HDL code:                                                          *
+     *  1) declaring an entity                                                              *
+     *  2) instantiating an entity - mapping its inputs/outputs to (external) signals       *
+     *                                                                                      *
+     * Since the above are distinct from one another (and 2 actually requires 1), they are  *
+     * also done separately, each with its respective function (see the functions declared  *
+     * at the top of this file).                                                            *
+     *                                                                                      *
+     * The process is thus the following:                                                   *
+     *  - the file is parsed, and information needed for each stage is stored in arrays     *
+     *    (input_names, output_names are needed for declaration, input_signals,             *
+     *    output_signals are needed for instantiation)                                      *
+     *  - the component is "declared", meaning a standard on which future instantiations    *
+     *    will be based is created.                                                         *
+     *  - a subsystem following that standard is instantiated with the input/output signals *
+     *    that the input file specified mapped to it's inputs/outputs respectively.         *
+     *                                                                                      *
+    \***************************************************************************************/
 
     char **input_names = NULL;
     int input_names_c = 0;
@@ -47,20 +93,24 @@ int main() {
     char **output_signals = NULL;
     int output_signals_c = 0;
 
-    
-    char **buf = NULL;  // buffer to store the "useful" part of a line (the one with no declarations)
+    // we also need some temporary variables and (1 and 2 dimensional) buffers
+    char **buf = NULL;
     int buf_len = 0;
     char *name = NULL;
     char *tmp;
 
     // loop through the lines of the file and get the contents
-    while((nread = read_line_from_file(&line, filename, &len, offset)) != -1) {
+    char *line = NULL;
+    int nread = 0;
+    int offset = 0;
+    size_t len = 0;
+    while((nread = read_line_from_file(&line, input, &len, offset)) != -1) {
 
         char *_line = line;
 
         if (starts_with(_line, ENTITY_START)) {
-            _line += strlen(ENTITY_START)+1;        // skip the declaration and the following space
-            tmp = split(&_line, PORT_MAP_DELIM);    // keep the part until the next space
+            _line += strlen(ENTITY_START)+1;        // skip the declaration and the first space
+            tmp = split(&_line, PORT_MAP_DELIM);    // keep the part until the second space
             
             // allocate memory for the name and save it
             name = malloc(strlen(tmp)+1);   
@@ -171,34 +221,46 @@ int main() {
         // move the cursor
         offset += nread;
     }
-
-
     free(line);
 
-    // we got it all
-    // check input names equals input signals
-    // check output names equals output signals
+    /***************************************************************************************\
+     *                                                                                      *
+     * Now that the parsing is over and we have all the information that we need, in the    *
+     * format that we need it, the fun part begins:                                         *
+     *  - First of all we parse the gate library, since gates are the basic building blocks *
+     *    of everything                                                                     *
+     *  - Then we parse the subsystem library to find the subsystems that are needed to     *
+     *    create the requested subsystem                                                    *
+     *  - We then create a standard for the subsystem, describing its internals             *
+     *    (components, output mappings etc.) (this is the only part where the full adder    *
+     *    stuff is "hard-coded", everything else is generic)                                *
+     *  - We create an instance of the requested subsystem, according to the standard       *
+     *    defined above, and map its inputs/outputs to the ones described in the input      *
+     *    file.                                                                             *
+     *  - Finally we print the netlist of that instance to an output file                   *
+     *                                                                                      *
+    \***************************************************************************************/
 
-   
     // read the component library where the gates are defined
     Netlist *gate_lib = malloc(sizeof(Netlist));
-    if (gate_lib_from_file(GATE_LIB_NAME, gate_lib)) {
+    if (gate_lib_from_file(gate_lib_name, gate_lib)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
+    
     // read the subsystem library where the single-bit full adder is defined
     Netlist *lib = malloc(sizeof(Netlist));
-    if (subsys_lib_from_file(SUBSYS_LIB_NAME, lib, gate_lib)) {
+    if (subsys_lib_from_file(subsys_lib_name, lib, gate_lib)) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
 
-    // find the full adder standard
+    // find the full adder standard in the subsystem library
     Standard *single_bit_std = NULL;
     Node *nod = lib->contents;
     while(nod!=NULL) {
 
-        if (strncmp(nod->std->subsys->name, SINGLE_BIT_FA_NAME, strlen(SINGLE_BIT_FA_NAME)) == 0) {
+        if (strncmp(nod->std->subsys->name, single_bit_fa_name, strlen(single_bit_fa_name)) == 0) {
             single_bit_std = nod->std;
             break;
         }
@@ -206,12 +268,11 @@ int main() {
     }
 
     if (single_bit_std == NULL) {
-        printf("error! Single bit full adder standard from library is null\n");
+        printf("Error! Could not find a subsystem with the expected name (%s) in the subsystem library (%s)\n", single_bit_fa_name, subsys_lib_name);
     }
 
-
-    // call the standard creating function
-    Subsystem *nbit_std = create_full_adder_standard(
+    // create the standard for the requested full adder
+    Standard *nbit_std = create_full_adder_standard(
         name,
         input_names, input_names_c,
         output_names, output_names_c,
@@ -219,14 +280,14 @@ int main() {
         single_bit_std
     );
 
-    // instantiate the full adder
-    Subsystem *instance = instantiate(nbit_std, input_signals, input_signals_c, output_signals, output_signals_c);
+    // instantiate the requested full adder
+    Subsystem *instance = instantiate_subsys(nbit_std->subsys, input_signals, input_signals_c, output_signals, output_signals_c);
 
     // write the instance's netlist to a file
-    netlist_to_file(instance, OUTPUT_FILE, "w");
+    netlist_to_file(instance, output, "w");
     
     // display a success message
-    printf("Success! The output netlist was written to %s\n", OUTPUT_FILE);
+    printf("Success! The output netlist was written to %s\n", output);
 
     // cleanup
     free_str_list(input_names, input_names_c);
@@ -236,16 +297,23 @@ int main() {
     free(name);
 
     free_subsystem(instance, 1);
-    free_subsystem(nbit_std, 1);
+    free_standard(nbit_std);
 
     free_lib(lib);
     free_lib(gate_lib);
 
-
     return 0;
 }
 
-Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits, Standard *single_bit_std) {
+/**
+ * Create an n-bit full addder standard subsystem, with the given
+ * input/output names and with single bit full adders that are
+ * created according to single_bit_std as components.
+ * 
+ * Creates (and allocates memory for) all components and input/output
+ * lists as well as the subsystem itself.
+*/
+Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits, Standard *single_bit_std) {
 
     Subsystem *new = malloc(sizeof(Subsystem));
 
@@ -350,11 +418,26 @@ Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc, cha
     // and garbage will be interpreted as pointers, leading to segfault)
     new->output_mappings = NULL;
 
-    return new;
+    // create the standard that wraps the subsystem
+    Standard *s = malloc(sizeof(Standard));
+    s->defined_in = NULL;
+    s->type = SUBSYSTEM;
+    s->subsys = new;
+
+    return s;
 
 }
 
-Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc) {
+/**
+ * Given a standard subsystem, create an instance of it with the given inputs/outputs.
+ * 
+ * Creates all components that std says, maps each component's inputs to whatever std says,
+ * maps all subsystem outputs to whatever std says.
+ * 
+ * This function is completely subsystem agnostic, meaning that (assuming a proper standard)
+ * virtually ANY subsystem can be instantiated with it.
+*/
+Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc) {
 
     Subsystem *instance = malloc(sizeof(Subsystem));
 
@@ -391,20 +474,31 @@ Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs
             Mapping *m = nd->comp->i_maps[i];
             char *tmp;
             if (m->type == SUBSYS_INPUT) {
+
+                // find the input that the mapping refers to
                 tmp = instance->inputs[m->index];
                 comp->inputs[i] = malloc(strlen(tmp)+1);
                 strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
+
             } else if (m->type == SUBSYS_COMP) {
+
+                // find the component that the mapping refers to
                 Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
+                
+                // write the component id and the output name in a string
                 tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
                 sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
+                
+                // copy that string into the component's inputs (and free it)
                 comp->inputs[i] = malloc(strlen(tmp)+1);
                 strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
                 free(tmp);
+
             }
 
         }
 
+        // add the newly created component to the instance
         subsys_add_comp(instance, comp);
 
         nd = nd->next;
@@ -417,12 +511,21 @@ Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs
         Mapping *m = std->o_maps[i];
 
         if (m->type == SUBSYS_INPUT) {
+
+            // find the input that the mapping refers to
             instance->output_mappings[i] = malloc(strlen(instance->inputs[m->index])+1);
             strncpy(instance->output_mappings[i], instance->inputs[m->index], strlen(instance->inputs[m->index])+1);
+        
         } else if (m->type == SUBSYS_COMP) {
+        
+            // find the component that the mapping refers to
             Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
+            
+            // write the component id and the output name in a string
             char *tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
             sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
+            
+            // copy that string into the instance's outputs (and free it)
             instance->output_mappings[i] = malloc(strlen(tmp)+1);
             strncpy(instance->output_mappings[i], tmp, strlen(tmp)+1);
             free(tmp);
@@ -432,4 +535,14 @@ Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs
 
     return instance;
 
+}
+
+void usage(char *name) {
+    printf("Usage: %s [option optarg]\n", name);
+    printf("Available options:\n");
+    printf("\t-f <filename>: specify the file in which the entity is defined (default: %s)\n", FILENAME);
+    printf("\t-g <filename>: specify the file in which the component/gates library is defined (default: %s)\n", GATE_LIB_NAME);
+    printf("\t-s <filename>: specify the file in which the subsystem library is defined (default: %s)\n", SUBSYS_LIB_NAME);
+    printf("\t-o <filename>: specify the file in which the output netlist will be stored (default: %s)\n", OUTPUT_FILE);
+    printf("\t-n <FA name> : specify the name that the single bit has in the subsystem library (default: %s)\n", SINGLE_BIT_FA_NAME);
 }
