@@ -269,3 +269,21 @@ void free_str_list(char **l, int lc) {
 
     free(l);
 }
+
+int deepcopy_str_list(char ***dst, char **src, int n) {
+
+    if (src == NULL) return NARG;
+
+    (*dst) = malloc(sizeof(char*) * n);
+
+    for(int i=0; i<n; i++) {
+        
+        if (src[i] == NULL) return NARG;
+
+        (*dst)[i] = malloc(strlen(src[i])+1);
+        strncpy((*dst)[i], src[i], strlen(src[i])+1);
+    }
+
+    return n;
+
+}

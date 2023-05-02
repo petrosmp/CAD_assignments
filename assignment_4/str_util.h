@@ -165,3 +165,12 @@ int list_concat(char*** l1, int l1_c, char **l2, int l2_c);
  * Free a list of strings.
 */
 void free_str_list(char **l, int lc);
+
+/**
+ * Allocate memory for n strings at dst, and copy the contents
+ * (not references) of src to dst.
+ * 
+ * Returns the number of items copied over on success, NARG if
+ * there are null arguments.
+*/
+int deepcopy_str_list(char ***dst, char **src, int n);
