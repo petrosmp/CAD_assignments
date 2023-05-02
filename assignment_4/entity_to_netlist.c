@@ -23,12 +23,8 @@
 #define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
 #define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
 
-Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
-                                      char **outputs, int outputc, int nbits,
-                                      Standard *single_bit_std);
-
-Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs,\
-                       int outputc);
+Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
+Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);
 
 int main() {
 
@@ -183,15 +179,6 @@ int main() {
     // check input names equals input signals
     // check output names equals output signals
 
-
-    /************************************************************************
-    *                                                                       *
-    *                                                                       *
-    *                From here on down the real main starts                 *
-    *                                                                       *
-    *                                                                       *
-    ************************************************************************/
-
    
     // read the component library where the gates are defined
     Netlist *gate_lib = malloc(sizeof(Netlist));
@@ -232,45 +219,16 @@ int main() {
         single_bit_std
     );
 
-    // print the standard's info
-    printf("Successfully created standard:\n");
-    printf("Name: %s\n", nbit_std->name);
-    for(int i=0; i<nbit_std->_inputc; i++) {
-        printf("Input #%d: %s\n", i, nbit_std->inputs[i]);
-    }
-    for(Node *n=nbit_std->components; n!=NULL; n=n->next) {
-        printf("Component U%d (%s):\n",n->comp->id, n->comp->prototype->subsys->name);
-        printf("\tInputs:\n");
-        
-        for(int i=0; i<n->comp->_inputc; i++){
-            printf("\t\t%s, mapped to %s ",n->comp->prototype->subsys->inputs[i], n->comp->i_maps[i]->type==SUBSYS_INPUT?"input":"component");
-            if (n->comp->i_maps[i]->type==SUBSYS_INPUT) {
-                printf("%d (%s)\n", n->comp->i_maps[i]->index, nbit_std->inputs[n->comp->i_maps[i]->index]);
-            } else {
-                Node *rtcn = move_in_list(n->comp->i_maps[i]->index, nbit_std->components); // referred_to_comp_node
-                printf("%d, output %d (U%d_%s)\n", n->comp->i_maps[i]->index, n->comp->i_maps[i]->out_index, rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[n->comp->i_maps[i]->out_index]);
-            }
-        }
-
-        printf("\tOutputs:\n");
-        for(int i=0; i<n->comp->prototype->subsys->_outputc; i++) {
-            printf("\t\t%s\n", n->comp->prototype->subsys->outputs[i]);
-        }
-
-        printf("\n");
-    }
-    for(int i=0; i<nbit_std->_outputc; i++) {
-        Node *rtcn = move_in_list(nbit_std->o_maps[i]->index, nbit_std->components); // referred_to_comp_node
-        printf("Output #%d: %s, mapped to component %d, output %d (U%d_%s)\n", i, nbit_std->outputs[i], nbit_std->o_maps[i]->index, nbit_std->o_maps[i]->out_index, rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[nbit_std->o_maps[i]->out_index]);
-    }
-
-
     // instantiate the full adder
     Subsystem *instance = instantiate(nbit_std, input_signals, input_signals_c, output_signals, output_signals_c);
 
+    // write the instance's netlist to a file
     netlist_to_file(instance, OUTPUT_FILE, "w");
+    
+    // display a success message
+    printf("Success! The output netlist was written to %s\n", OUTPUT_FILE);
 
-
+    // cleanup
     free_str_list(input_names, input_names_c);
     free_str_list(input_signals, input_signals_c);
     free_str_list(output_names, output_names_c);
@@ -279,17 +237,15 @@ int main() {
 
     free_subsystem(instance, 1);
     free_subsystem(nbit_std, 1);
-    
 
     free_lib(lib);
     free_lib(gate_lib);
-    return 0;
 
+
+    return 0;
 }
 
-Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
-                                      char **outputs, int outputc, int nbits,\
-                                      Standard *single_bit_std) {
+Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits, Standard *single_bit_std) {
 
     Subsystem *new = malloc(sizeof(Subsystem));
 
@@ -398,8 +354,7 @@ Subsystem* create_full_adder_standard(char *name, char **inputs, int inputc,\
 
 }
 
-Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs,\
-                       int outputc) {
+Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc) {
 
     Subsystem *instance = malloc(sizeof(Subsystem));
 
@@ -440,7 +395,7 @@ Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs
                 comp->inputs[i] = malloc(strlen(tmp)+1);
                 strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
             } else if (m->type == SUBSYS_COMP) {
-                Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node
+                Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
                 tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
                 sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
                 comp->inputs[i] = malloc(strlen(tmp)+1);
@@ -465,7 +420,7 @@ Subsystem *instantiate(Subsystem *std, char **inputs, int inputc, char **outputs
             instance->output_mappings[i] = malloc(strlen(instance->inputs[m->index])+1);
             strncpy(instance->output_mappings[i], instance->inputs[m->index], strlen(instance->inputs[m->index])+1);
         } else if (m->type == SUBSYS_COMP) {
-            Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node
+            Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
             char *tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
             sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
             instance->output_mappings[i] = malloc(strlen(tmp)+1);
