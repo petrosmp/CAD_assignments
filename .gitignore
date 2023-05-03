@@ -19,3 +19,6 @@ assignment_3/*.png
 assignment_3/*.svg
 assignment_3/report.docx
 assignment_3/translate_to_gates.exe
+
+assignment_4/report.docx
+assignment_4/entity_to_netlist.exe
