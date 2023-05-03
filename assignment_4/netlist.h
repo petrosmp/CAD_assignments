@@ -447,3 +447,14 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id);
  * Print the contents of the given library in the file with the given filename.
 */
 void lib_to_file(Netlist *lib, char *filename, char *mode);
+
+/**
+ * Given a standard subsystem, create an instance of it with the given inputs/outputs.
+ * 
+ * Creates all components that std says, maps each component's inputs to whatever std says,
+ * maps all subsystem outputs to whatever std says.
+ * 
+ * This function is completely subsystem agnostic, meaning that (assuming a proper standard)
+ * virtually ANY subsystem can be instantiated with it.
+*/
+Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);

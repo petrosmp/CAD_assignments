@@ -26,7 +26,6 @@
 
 void usage(char *name);
 Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
-Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);
 
 int main(int argc, char *argv[]) {
 
@@ -425,115 +424,6 @@ Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char
     s->subsys = new;
 
     return s;
-
-}
-
-/**
- * Given a standard subsystem, create an instance of it with the given inputs/outputs.
- * 
- * Creates all components that std says, maps each component's inputs to whatever std says,
- * maps all subsystem outputs to whatever std says.
- * 
- * This function is completely subsystem agnostic, meaning that (assuming a proper standard)
- * virtually ANY subsystem can be instantiated with it.
-*/
-Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc) {
-
-    Subsystem *instance = malloc(sizeof(Subsystem));
-
-    // check if null, if number of inputs/outputs the same, etc TODO
-
-    // set the name
-    instance->name = malloc(strlen(std->name)+1);
-    instance->is_standard = 0;
-    strncpy(instance->name, std->name, strlen(std->name)+1);
-
-    // set the inputs and outputs according to the given names
-    deepcopy_str_list(&(instance->inputs), inputs, inputc);
-    instance->_inputc = inputc;
-
-    deepcopy_str_list(&(instance->outputs), outputs, outputc);
-    instance->_outputc = outputc;
-
-    // create the components of the instance according to the standard
-    Node *nd = std->components;
-    instance->components = NULL;
-    while (nd != NULL) {
-
-        Component *comp = malloc(sizeof(Component));
-
-        comp->is_standard = 0;
-        comp->id = nd->comp->id;
-        comp->prototype = nd->comp->prototype;
-
-        // resolve the input mappings
-        comp->inputs = malloc(sizeof(char*) * comp->prototype->subsys->_inputc);
-        comp->_inputc = comp->prototype->subsys->_inputc;
-        for(int i=0; i<comp->prototype->subsys->_inputc; i++) {
-            
-            Mapping *m = nd->comp->i_maps[i];
-            char *tmp;
-            if (m->type == SUBSYS_INPUT) {
-
-                // find the input that the mapping refers to
-                tmp = instance->inputs[m->index];
-                comp->inputs[i] = malloc(strlen(tmp)+1);
-                strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
-
-            } else if (m->type == SUBSYS_COMP) {
-
-                // find the component that the mapping refers to
-                Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
-                
-                // write the component id and the output name in a string
-                tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
-                sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
-                
-                // copy that string into the component's inputs (and free it)
-                comp->inputs[i] = malloc(strlen(tmp)+1);
-                strncpy(comp->inputs[i], tmp, strlen(tmp)+1);
-                free(tmp);
-
-            }
-
-        }
-
-        // add the newly created component to the instance
-        subsys_add_comp(instance, comp);
-
-        nd = nd->next;
-    }
-
-    // map the outputs according to the standard (resolve the mappings)
-    instance->output_mappings = malloc(sizeof(char*) * instance->_outputc);
-    for(int i=0; i<instance->_outputc; i++) {
-        
-        Mapping *m = std->o_maps[i];
-
-        if (m->type == SUBSYS_INPUT) {
-
-            // find the input that the mapping refers to
-            instance->output_mappings[i] = malloc(strlen(instance->inputs[m->index])+1);
-            strncpy(instance->output_mappings[i], instance->inputs[m->index], strlen(instance->inputs[m->index])+1);
-        
-        } else if (m->type == SUBSYS_COMP) {
-        
-            // find the component that the mapping refers to
-            Node *rtcn = move_in_list(m->index, instance->components);  // referred_to_comp_node (the node that contains the component that the mapping refers to)
-            
-            // write the component id and the output name in a string
-            char *tmp = malloc(1+digits(rtcn->comp->id)+1+strlen(rtcn->comp->prototype->subsys->outputs[m->out_index])+2);  // allocate memory for the 'U', the ID, the '_', the output name and a null byte
-            sprintf(tmp, "U%d_%s", rtcn->comp->id, rtcn->comp->prototype->subsys->outputs[m->out_index]);
-            
-            // copy that string into the instance's outputs (and free it)
-            instance->output_mappings[i] = malloc(strlen(tmp)+1);
-            strncpy(instance->output_mappings[i], tmp, strlen(tmp)+1);
-            free(tmp);
-        }
-
-    }
-
-    return instance;
 
 }
 
