@@ -211,6 +211,9 @@ int main(int argc, char *argv[]) {
     // write the full adder's netlist to a file
     netlist_to_file(nbit_fa, output, "w");
     
+    // display a success message
+    printf("Success! The output netlist was written to %s\n", output);
+
     // cleanup
     free_str_list(input_signals, input_signals_c);
     free_str_list(output_signals, output_signals_c);
@@ -225,7 +228,7 @@ int main(int argc, char *argv[]) {
 }
 
 /**
- * Create an n-bit full addder standard subsystem, with the given
+ * Create an n-bit full addder subsystem, with the given
  * input/output names and with single bit full adders that are
  * created according to single_bit_std as components.
  * 
