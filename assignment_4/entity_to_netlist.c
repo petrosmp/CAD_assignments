@@ -23,9 +23,11 @@
 #define PORT_MAP_DELIM " "          /* The delimiter that separates fields in a port map line */
 #define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
 #define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
+#define COUT "COUT"
+#define S "S"
 
 void usage(char *name);
-Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
+Subsystem* create_full_adder(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits,Standard *single_bit_std);
 
 int main(int argc, char *argv[]) {
 
@@ -61,30 +63,18 @@ int main(int argc, char *argv[]) {
 
     /***************************************************************************************\
      *                                                                                      *
-     * The input format as presented in the project specification contains two (different)  *
-     * stages of writing HDL code:                                                          *
-     *  1) declaring an entity                                                              *
-     *  2) instantiating an entity - mapping its inputs/outputs to (external) signals       *
+     * The input format as presented in the project specification declares a VHDL entity.   *
      *                                                                                      *
-     * Since the above are distinct from one another (and 2 actually requires 1), they are  *
-     * also done separately, each with its respective function (see the functions declared  *
-     * at the top of this file).                                                            *
+     * In order to achieve that functionality we need to keep track of the input/output     *
+     * signals that the entity has, as well as any variables that may come in useful when   *
+     * creating the subsystem.                                                              *
      *                                                                                      *
      * The process is thus the following:                                                   *
-     *  - the file is parsed, and information needed for each stage is stored in arrays     *
-     *    (input_names, output_names are needed for declaration, input_signals,             *
-     *    output_signals are needed for instantiation)                                      *
-     *  - the component is "declared", meaning a standard on which future instantiations    *
-     *    will be based is created.                                                         *
-     *  - a subsystem following that standard is instantiated with the input/output signals *
-     *    that the input file specified mapped to it's inputs/outputs respectively.         *
+     *  - the file is parsed, and information needed is stored in arrays (input_signals,    *
+     *    output_signals)                                                                   *
+     *  - the subsystem is created                                                          *
      *                                                                                      *
     \***************************************************************************************/
-
-    char **input_names = NULL;
-    int input_names_c = 0;
-    char **output_names = NULL;
-    int output_names_c = 0;
 
     int n;
     char **input_signals = NULL;
@@ -144,31 +134,6 @@ int main(int argc, char *argv[]) {
             buf=NULL;
             buf_len = str_to_list(_line+strlen(PORT_MAP_COLON), &buf, PORT_MAP_SIGNAL_DELIM);
 
-            // allocate memory for the input names
-            input_names = realloc(input_names, sizeof(char*) * (input_names_c+buf_len));
-
-            // if the signals are more than one it means the input is a bit vector which we need to enumerate
-            if (buf_len > 1) {
-
-                for (int i=buf_len-1; i>=0; i--) {              // we go from n-1 to 0 inclusive
-                    char *a = malloc(strlen(tmp)+digits(i)+2);  // allocate memory for the prefix, the number and a null byte
-
-                    // "create" the enumerated name (for example A3, A2, A1, etc.)
-                    sprintf(a, "%s%d", tmp, i);
-
-                    // add it to the list
-                    input_names[input_names_c] = malloc(strlen(a)+1);
-                    strncpy(input_names[input_names_c++], a, strlen(a)+1);
-
-                    free(a);
-                }
-
-            } else {    // otherwise it is just a single bit, just add it to the list
-                input_names[input_names_c] = malloc(strlen(tmp)+1);
-                strncpy(input_names[input_names_c++], tmp, strlen(tmp)+1);
-            }
-
-
             // append the buffer list to the input list
             input_signals_c += list_concat(&input_signals, input_signals_c, buf, buf_len);
 
@@ -184,31 +149,6 @@ int main(int argc, char *argv[]) {
             // get the output signals (in a list)
             buf=NULL;
             buf_len = str_to_list(_line+strlen(PORT_MAP_COLON), &buf, PORT_MAP_SIGNAL_DELIM);
-
-            // allocate memory for the output names
-            output_names = realloc(output_names, sizeof(char*) * (output_names_c+buf_len));
-
-            // if the signals are more than one it means the output is a bit vector which we need to enumerate
-            if (buf_len > 1) {
-
-                for (int i=buf_len-1; i>=0; i--) {              // we go from n-1 to 0 inclusive
-                    char *a = malloc(strlen(tmp)+digits(i)+2);  // allocate memory for the prefix, the number and a null byte
-
-                    // "create" the enumerated name (for example A3, A2, A1, etc.)
-                    sprintf(a, "%s%d", tmp, i);
-
-                    // add it to the list
-                    output_names[output_names_c] = malloc(strlen(a)+1);
-                    strncpy(output_names[output_names_c++], a, strlen(a)+1);
-
-                    free(a);
-                }
-
-            } else {    // otherwise it is just a single bit, just add it to the list
-                output_names[output_names_c] = malloc(strlen(tmp)+1);
-                strncpy(output_names[output_names_c++], tmp, strlen(tmp)+1);
-            }
-
 
             // append the buffer list to the output list
             output_signals_c += list_concat(&output_signals, output_signals_c, buf, buf_len);
@@ -230,13 +170,8 @@ int main(int argc, char *argv[]) {
      *    of everything                                                                     *
      *  - Then we parse the subsystem library to find the subsystems that are needed to     *
      *    create the requested subsystem                                                    *
-     *  - We then create a standard for the subsystem, describing its internals             *
-     *    (components, output mappings etc.) (this is the only part where the full adder    *
-     *    stuff is "hard-coded", everything else is generic)                                *
-     *  - We create an instance of the requested subsystem, according to the standard       *
-     *    defined above, and map its inputs/outputs to the ones described in the input      *
-     *    file.                                                                             *
-     *  - Finally we print the netlist of that instance to an output file                   *
+     *  - We then create the requested full adder                                           *
+     *  - Finally we print the netlist of that full adder to an output file                 *
      *                                                                                      *
     \***************************************************************************************/
 
@@ -270,33 +205,18 @@ int main(int argc, char *argv[]) {
         printf("Error! Could not find a subsystem with the expected name (%s) in the subsystem library (%s)\n", single_bit_fa_name, subsys_lib_name);
     }
 
-    // create the standard for the requested full adder
-    Standard *nbit_std = create_full_adder_standard(
-        name,
-        input_names, input_names_c,
-        output_names, output_names_c,
-        n,
-        single_bit_std
-    );
+    // create the requested full adder
+    Subsystem *nbit_fa = create_full_adder(name, input_signals, input_signals_c, output_signals, output_signals_c, n, single_bit_std);
 
-    // instantiate the requested full adder
-    Subsystem *instance = instantiate_subsys(nbit_std->subsys, input_signals, input_signals_c, output_signals, output_signals_c);
-
-    // write the instance's netlist to a file
-    netlist_to_file(instance, output, "w");
+    // write the full adder's netlist to a file
+    netlist_to_file(nbit_fa, output, "w");
     
-    // display a success message
-    printf("Success! The output netlist was written to %s\n", output);
-
     // cleanup
-    free_str_list(input_names, input_names_c);
     free_str_list(input_signals, input_signals_c);
-    free_str_list(output_names, output_names_c);
     free_str_list(output_signals, output_signals_c);
     free(name);
 
-    free_subsystem(instance, 1);
-    free_standard(nbit_std);
+    free_subsystem(nbit_fa, 1);
 
     free_lib(lib);
     free_lib(gate_lib);
@@ -312,7 +232,7 @@ int main(int argc, char *argv[]) {
  * Creates (and allocates memory for) all components and input/output
  * lists as well as the subsystem itself.
 */
-Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits, Standard *single_bit_std) {
+Subsystem* create_full_adder(char *name, char **inputs, int inputc, char **outputs, int outputc, int nbits, Standard *single_bit_std) {
 
     Subsystem *new = malloc(sizeof(Subsystem));
 
@@ -321,22 +241,11 @@ Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char
     strncpy(new->name, name, strlen(name)+1);
 
     // copy the input and output names over
-    new->_inputc = inputc;
-    new->inputs = malloc(sizeof(char*) * inputc);
-    for (int i=0; i<inputc; i++) {
-        new->inputs[i] = malloc(strlen(inputs[i])+1);
-        strncpy(new->inputs[i], inputs[i], strlen(inputs[i])+1);
-    }
-
-    new->_outputc = outputc;
-    new->outputs = malloc(sizeof(char*) * outputc);
-    for (int i=0; i<outputc; i++) {
-        new->outputs[i] = malloc(strlen(outputs[i])+1);
-        strncpy(new->outputs[i], outputs[i], strlen(outputs[i])+1);
-    }
-
-    // set the new subsystem as standard
-    new->is_standard = 1;
+    new->_inputc = deepcopy_str_list(&(new->inputs), inputs, inputc);
+    new->_outputc = deepcopy_str_list(&(new->outputs), outputs, outputc);
+    
+    // set the new subsystem as non-standard
+    new->is_standard = 0;
 
     // set the components (specific to full adder)
     new->components = NULL;
@@ -344,51 +253,30 @@ Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char
 
         Component *comp = malloc(sizeof(Component));
         comp->id = i+1;
-        comp->is_standard = 1;
+        comp->is_standard = 0;
         comp->prototype = single_bit_std;   // specific to full adder
-        
-             
-        if (comp->prototype->subsys->inputs == NULL) {
-            printf("is null\n");
-        }
-        // set the component input names
-        comp->inputs = NULL;
-        
-        
-        if (&(comp->inputs) == NULL) {
-            printf("normal\n");
-        }
-        
-        deepcopy_str_list(&(comp->inputs), comp->prototype->subsys->inputs, comp->prototype->subsys->_inputc);
+        comp->i_maps = NULL;
 
-        if (comp->prototype->subsys == NULL) {
-            printf("is null\n");
-        }
+        // set the component inputs
+        comp->inputs = malloc(sizeof(char*) * comp->prototype->subsys->_inputc);
         comp->_inputc = comp->prototype->subsys->_inputc;
 
-        // set the component input mappings (specific to full adder)
-        comp->i_maps = malloc(sizeof(Mapping*) * comp->_inputc);
+        // inputs A, B are simple
+        comp->inputs[0] = malloc(strlen(inputs[nbits-i-1])+2);
+        strncpy(comp->inputs[0], inputs[nbits-i-1], strlen(inputs[nbits-i-1])+1);
         
-        // inputs A, B (we assume subsys input array is Ai..., Bi..., Cin)
-        comp->i_maps[0] = malloc(sizeof(Mapping));
-        comp->i_maps[0]->type = SUBSYS_INPUT;
-        comp->i_maps[0]->index = nbits - 1 - i;
-        
-        comp->i_maps[1] = malloc(sizeof(Mapping));
-        comp->i_maps[1]->type = SUBSYS_INPUT;
-        comp->i_maps[1]->index = 2*nbits - 1 - i;
+        comp->inputs[1] = malloc(strlen(inputs[2*nbits - 1 - i])+2);
+        strncpy(comp->inputs[1], inputs[2*nbits - 1 - i], strlen(inputs[2*nbits - 1 - i])+1);
 
         // input C needs some handling
-        comp->i_maps[2] = malloc(sizeof(Mapping));
         if (i==0) {
-            // subsystem Cin
-            comp->i_maps[2]->type = SUBSYS_INPUT;
-            comp->i_maps[2]->index = 2*nbits;
+            comp->inputs[2] = malloc(strlen(inputs[2*nbits])+1);
+            strncpy(comp->inputs[2], inputs[2*nbits], strlen(inputs[2*nbits])+1);
+
         } else {
             // previous component Cout
-            comp->i_maps[2]->type = SUBSYS_COMP;
-            comp->i_maps[2]->index = i-1;
-            comp->i_maps[2]->out_index = comp->prototype->subsys->_outputc-1;
+            comp->inputs[2] = malloc(1+digits(i)+1+strlen(COUT)+2);
+            sprintf(comp->inputs[2], "U%d_%s", i, COUT);
         }
         
         subsys_add_comp(new, comp);
@@ -396,34 +284,28 @@ Standard* create_full_adder_standard(char *name, char **inputs, int inputc, char
     }
 
     // set the output mappings (specific to full adder)
-    new->o_maps = malloc(sizeof(Mapping*) * new->_outputc);
+    new->output_mappings = malloc(sizeof(char*) * outputc);
+    for(int i=0; i<outputc; i++) {
+        if (i==outputc-1) {
+            
+            // last component cout
+            new->output_mappings[i] = malloc(1+digits(i-1)+1+strlen(COUT)+1);        
+            sprintf(new->output_mappings[i], "U%d_%s", nbits, COUT);
+        
+        } else {
 
-    // the first n are the S outputs
-    for(int i=0; i<new->_outputc-1; i++) {
-        new->o_maps[i] = malloc(sizeof(Mapping));
-        new->o_maps[i]->type = SUBSYS_COMP;
-        new->o_maps[i]->index = nbits-1-i;
-        new->o_maps[i]->out_index = 0; // S output
+            // comp nbits-1-i s
+            new->output_mappings[i] = malloc(1+digits(nbits-i)+1+strlen(S)+1);        
+            sprintf(new->output_mappings[i], "U%d_%s", nbits-i, S);
+        }
     }
-
-    // the last one is Cout
-    new->o_maps[new->_outputc-1] = malloc(sizeof(Mapping));
-    new->o_maps[new->_outputc-1]->type = SUBSYS_COMP;
-    new->o_maps[new->_outputc-1]->index = nbits-1;
-    new->o_maps[new->_outputc-1]->out_index = 1; // Cout output
 
     // initialize the rest of the fields to null to avoid segfaults
     // (if they are not explicitly set to null, null checks will not work
     // and garbage will be interpreted as pointers, leading to segfault)
-    new->output_mappings = NULL;
+    new->o_maps = NULL;
 
-    // create the standard that wraps the subsystem
-    Standard *s = malloc(sizeof(Standard));
-    s->defined_in = NULL;
-    s->type = SUBSYSTEM;
-    s->subsys = new;
-
-    return s;
+    return new;
 
 }
 
