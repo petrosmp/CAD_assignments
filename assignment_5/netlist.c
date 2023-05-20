@@ -1139,6 +1139,8 @@ void lib_to_file(Netlist *lib, char *filename, char *mode) {
 
                 Component *comp = n_n->comp;
 
+                fprintf(stderr, "at U%d\n", comp->id);
+
                 // print the component's ID and name
                 fprintf(fp, "U%d %s ", comp->id, comp->prototype->gate->name);
 
@@ -1595,7 +1597,7 @@ Component *instantiate_component(Standard *std, int id, char **inputs, int input
 
 
 
-void old_lib_to_file(Netlist *lib, char *filename, char *mode) {
+void old_lib_to_file(Netlist *lib, char *filename, char *mode, int mod) {
 
     FILE *fp = fopen(filename, mode);
 
@@ -1622,7 +1624,7 @@ void old_lib_to_file(Netlist *lib, char *filename, char *mode) {
                 fprintf(fp, "%s ", comp->inputs[i]);
             }
             fprintf(fp, "\n");
-            if(comp->id % 5 == 0) {
+            if(comp->id % mod == 0) {
                 fprintf(fp, "\n");
             }
         }

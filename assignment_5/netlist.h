@@ -560,3 +560,4 @@ Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **
  */
 Component *instantiate_component(Standard *std, int id, char **inputs, int inputc);
 
+void old_lib_to_file(Netlist *lib, char *filename, char *mode, int mod);
