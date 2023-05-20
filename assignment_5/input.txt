@@ -1,0 +1,22 @@
+ENTITY adder IS
+VAR N = 3                           %% Number of Bits in the Adder
+LIB FULL_ADDER
+PORT ( IN A : SO , YOU , THINK      %% A, MSB TO LSB
+    IN B : CAN , TELL , HEAVEN      %% B, MSB TO LSB
+    IN CIN : FROM                   %% Cin
+    OUT S : HELL , BLUE , SKIES     %% Sum, MSB TO LSB
+    OUT Cout : PAIN                 %% Cout
+);
+END adder
+
+ENTITY adder_subtractor IS
+VAR N = 3                       %% Number of Bits in the Adder/Subtractor
+LIB FULL_ADDER_SUBTRACTOR
+PORT ( IN A : A2, A2, A0        %% A, MSB TO LSB
+    IN B : B2, B1, B0           %% B, MSB TO LSB
+    IN Cin : ADD_SUB_MODE       %% Cin
+    IN ADD’_SUB : ADD_SUB_MODE  %% Control Signal
+    OUT S : S2, S2, S0          %% Sum, MSB TO LSB
+    OUT Cout : COUT             %% Cout
+);
+END adder_subtractor
