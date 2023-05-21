@@ -8,28 +8,15 @@
 #define GATE_LIB_NAME       "component.lib"
 #define SUBSYS_LIB_NAME     "subsystem.lib"
 #define INPUT_FILE          "input1.txt"
-#define OUTPUT_FILE         "output.txt"
+#define OUTPUT_FILE         "output1.txt"
 #define SINGLE_BIT_FA_NAME  "FULL_ADDER"
 #define SINGLE_BIT_FAS_NAME "FULL_ADDER_SUBTRACTOR"
-#define SIZE 100
-#define ENTITY_START "ENTITY"       /* The string that indicates that an entity declaration starts in this line */
-#define ENTITY_END "END"            /* The string that indicates that an entity declaration ends in this line */
-#define VAR_DECLARATION "VAR"       /* The string that indicates that a line contains a variable declaration */
-#define VAR_ASSIGNMENT "= "         /* The string that lies between a variables name and its value */
-#define PORT_START "PORT ("         /* The string that indicates that a port map begins in this line */
-#define PORT_END ");"               /* The string that indicates that a port map begins in this line */
-#define PORT_MAP_INPUT "IN"         /* The string that indicates that a port map line contains an input signal */
-#define PORT_MAP_OUTPUT "OUT"       /* The string that indicates that a port map line contains an output signal */
-#define PORT_MAP_DELIM " "          /* The delimiter that separates fields in a port map line */
-#define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
-#define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
-#define REQUIREMENT_DECL "LIB"      /* The string that indicates that a required subsystem is specified in this line */
 
 void usage();
-
 Standard* create_nbit_adder_subtractor(Standard *single_bit_FAS, char *name, int n, int inputc, char **inputs, int outputc, char **outputs);
 Standard* create_nbit_full_adder(Standard *single_bit_std, char *name, int nbits, int inputc, char **inputs, int outputc, char **outputs);
 int parse_input_file(char *filename, char **name, int *inputc, char ***inputs, int *outputc,  char ***outputs, int *n, char **requirement);
+int read_libs(char *gate_lib_name, Netlist *gate_lib, char *subsys_lib_name, Netlist *subsys_lib);
 
 
 int main(int argc, char *argv[]) {
@@ -67,31 +54,23 @@ int main(int argc, char *argv[]) {
     parse_input_file(input_name, &name, &inputc, &inputs, &outputc, &outputs, &n, &requirement);
 
     // check if the required subsystem is defined in the library
-    Standard *required_std = NULL;
-    Node *nod = lib->contents;
-    while(nod!=NULL) {
-        if (strncmp(nod->std->subsys->name, requirement, strlen(requirement)) == 0) {
-            required_std = nod->std;
-            break;
-        }
-        nod = nod->next;
+    Standard *required_std;
+    if ( (required_std=find_in_lib(lib, requirement)) == NULL)  {
+        return -1;
     }
 
-    if (required_std == NULL) {
-        printf("Error! Could not find a subsystem with the expected name (%s) in the subsystem library (%s)\n", SINGLE_BIT_FAS_NAME, subsys_lib_name);
-    }
-
-    // call the appropriate function according to the subsystem that we want to create
-    Standard *target = NULL;
-    if (strncmp(requirement, SINGLE_BIT_FAS_NAME, strlen(SINGLE_BIT_FAS_NAME)) == 0) {                      // WARNING: The full_adder_subtractor has to be before the full_adder of the n in str'n'cmp would have to be dropped
+    // call the appropriate function for the subsystem we want to create
+    Standard *target = NULL; int sub=0;
+    if (strncmp(requirement, SINGLE_BIT_FAS_NAME, strlen(SINGLE_BIT_FAS_NAME)) == 0) {                      // The full_adder_subtractor has to be before the full_adder of the n in str'n'cmp would have to be dropped
         target = create_nbit_adder_subtractor(required_std, name, n, inputc, inputs, outputc, outputs);
+        sub = 1;
     } else if (strncmp(requirement, SINGLE_BIT_FA_NAME, strlen(SINGLE_BIT_FA_NAME)) == 0) {
         target = create_nbit_full_adder(required_std, name, n, inputc, inputs, outputc, outputs);
     } else {
         printf("Unknown system type '%s'\n", requirement);
     }
 
-    // put the newly created subsystem(s) in a library
+    // put the newly created subsystem in a library
     Netlist *net = malloc(sizeof(Netlist));
     net->contents = NULL; net->file=NULL; net->type=target->type;
     add_to_lib(net, target, 1, SUBSYSTEM);
@@ -104,7 +83,7 @@ int main(int argc, char *argv[]) {
     }
 
     // print the gates-only netlist to the file
-    old_lib_to_file(only_gates_lib, output_file, "w", 6);
+    old_lib_to_file(only_gates_lib, output_file, "w", sub?6:5);
 
 
     // cleanup
@@ -461,7 +440,6 @@ int read_libs(char *gate_lib_name, Netlist *gate_lib, char *subsys_lib_name, Net
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
-    lib_to_file(gate_lib, "koka", "w");
     
     // read the subsystem library where the subsystems that may be used are defined
     if (subsys_lib_from_file(subsys_lib_name, subsys_lib, gate_lib)) {
@@ -469,4 +447,5 @@ int read_libs(char *gate_lib_name, Netlist *gate_lib, char *subsys_lib_name, Net
         return -1;
     }
 
+    return 0;
 }
