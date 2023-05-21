@@ -11,7 +11,7 @@
 #define OUTPUT_DESIGNATION "OUT: "  /* The word that signifies that the next part of a string is the outputs of the subsystem. */
 #define IN_OUT_DELIM ", "           /* The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
 #define GENERAL_DELIM " ; "         /* The delimiter that separates fields. */
-#define COMP_ID_PREFIX "U"          /* The prefix of every component id. When printing the a component c, COMP_ID_PREFIX<c.id> will be printed */
+#define COMP_ID_PREFIX "U"          /* The prefix of every component id. When printing component c, COMP_ID_PREFIX<c.id> will be printed */
 #define COMP_DELIM  " "             /* The delimiter separating the attributes of a component */
 #define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist file */
 #define COMMENT_PREFIX "%%"         /* The prefix of any comment line */
@@ -22,6 +22,21 @@
 #define SYNTAX_ERROR -3             /* Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
 #define UNKNOWN_COMP -4             /* Error code returned when a netlist contains a component that we have not seen in any library */
 #define OUTPUT_MAP_DELIM " = "      /* The delimiter between a subsystem output name and its mapping in a netlist */
+#define ENTITY_START "ENTITY"       /* The string that indicates that an entity declaration starts in this line */
+#define ENTITY_END "END"            /* The string that indicates that an entity declaration ends in this line */
+#define VAR_DECLARATION "VAR"       /* The string that indicates that a line contains a variable declaration */
+#define VAR_ASSIGNMENT "= "         /* The string that lies between a variables name and its value */
+#define PORT_START "PORT ("         /* The string that indicates that a port map begins in this line */
+#define PORT_END ");"               /* The string that indicates that a port map begins in this line */
+#define PORT_MAP_INPUT "IN"         /* The string that indicates that a port map line contains an input signal */
+#define PORT_MAP_OUTPUT "OUT"       /* The string that indicates that a port map line contains an output signal */
+#define PORT_MAP_DELIM " "          /* The delimiter that separates fields in a port map line */
+#define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
+#define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
+#define REQUIREMENT_DECL "LIB"      /* The string that indicates that a required subsystem is specified in this line */
+
+
+
 
 /**
  * Since a single node structure is used for all linked list needs of the
@@ -559,5 +574,15 @@ Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **
  * @return (a pointer to) the newly instantiated component
  */
 Component *instantiate_component(Standard *std, int id, char **inputs, int inputc);
+
+/**
+ * @brief Search teh given library for a standard with the given name.
+ * 
+ * @param lib   The library to search in
+ * @param name  The name of the desired standard
+ * @return (a pointer to) the standard with the given name if found, NULL otherwise.
+ */
+Standard *find_in_lib(Netlist *lib, char *name);
+
 
 void old_lib_to_file(Netlist *lib, char *filename, char *mode, int mod);

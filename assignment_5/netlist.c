@@ -1595,6 +1595,22 @@ Component *instantiate_component(Standard *std, int id, char **inputs, int input
 
 }
 
+Standard *find_in_lib(Netlist *lib, char *name) {
+    
+    Standard *ret = NULL;
+    Node *nod = lib->contents;
+    while(nod!=NULL) {
+        if (strncmp(nod->std->subsys->name, name, strlen(name)) == 0) {
+            ret = nod->std;
+            return ret;
+        }
+        nod = nod->next;
+    }
+
+    printf("Error! Could not find a subsystem with the expected name (%s) in the subsystem library (%s)\n", name, lib->file);
+    return NULL;
+
+}
 
 
 void old_lib_to_file(Netlist *lib, char *filename, char *mode, int mod) {
