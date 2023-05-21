@@ -122,6 +122,14 @@ void usage() {
  */
 Standard* create_nbit_adder_subtractor(Standard *single_bit_FAS, char *name, int n, int inputc, char **inputs, int outputc, char **outputs) {
 
+    // check that the number of bits matches with the expected number of inputs/outputs
+    if (inputc != 2*n+2 || outputc!=n+1) {
+        printf("Number of bits does not match expected number of inputs/outputs!\n");
+        printf("With %d bits, a full adder/subtractor is expected to have %d inputs (got %d) and %d outputs (got %d)\n", n, 2*n+2, inputc, n+1, outputc);
+        exit(-1);
+    }
+
+
     Subsystem *s = malloc(sizeof(Subsystem));
 
     // set the name
@@ -228,6 +236,13 @@ Standard* create_nbit_adder_subtractor(Standard *single_bit_FAS, char *name, int
  * lists as well as the subsystem itself.
 */
 Standard* create_nbit_full_adder(Standard *single_bit_std, char *name, int nbits, int inputc, char **inputs, int outputc, char **outputs) {
+
+    // check that the number of bits matches with the expected number of inputs/outputs
+    if (inputc != 2*nbits+1 || outputc!=nbits+1) {
+        printf("Number of bits does not match expected number of inputs/outputs!\n");
+        printf("With %d bits, a full adder is expected to have %d inputs (got %d) and %d outputs (got %d)\n", nbits, 2*nbits+1, inputc, nbits+1, outputc);
+        exit(-1);
+    }
 
     Subsystem *new = malloc(sizeof(Subsystem));
 
