@@ -1862,13 +1862,13 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
 
             /*
             Useful for debugging, can print the inputs of each subsystem and see if the gates are ok
+            */
             
             fprintf(stderr, "inputs for U%d, %s are the following: ", comp->id, comp->prototype->subsys->name);
             for (int i=0; i<comp->_inputc; i++) {
                 fprintf(stderr, "%s ", inputs[i]);
             }
             fprintf(stderr, "\n");
-            */
             
             /*
                 we now have a complete list of inputs for each component
@@ -1961,7 +1961,7 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
             Mapping *om = target->o_maps[i];
 
             // resolve the mapping according to its type
-            if (om->type != SUBSYS_INPUT) {
+            if (om->type == SUBSYS_INPUT) {
 
                 // then all we need to do is put the name of the input in the output mapping list
                 only_gates_sub->output_mappings[i] = malloc(strlen(target->inputs[om->index])+1); // +1 for the null byte
@@ -1969,7 +1969,6 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
 
             } else if (om->type == SUBSYS_COMP) {
 
-                fprintf(stderr, "about to move %d positions in intermediate_components...\n", om->index);
                 // find out the component that the mapping maps to, which will now be in intermediate_components
                 Node *rtcn = move_in_list(om->index, intermediate_components); // referred-to component node
 
@@ -1984,9 +1983,6 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
 
                     // use the hack (search COMP_HACK)
                     Subsystem *mapped = (Subsystem*)(rtcn->comp);
-                    fprintf(stderr, "%s\n", mapped==NULL?"NULL":"not null");
-
-                    fprintf(stderr, "moved, and found %s\n", mapped->name);
 
                     // check that the out_index is valid
                     if (om->out_index < 0) {
