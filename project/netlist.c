@@ -78,9 +78,10 @@ void free_subsystem(Subsystem *s, int free_comp) {
         }
 
         // free component list
-        if (s->components != NULL && free_comp) {
-            ll_free(s->components, 1);
-        }
+        if (s->components != NULL) {
+            ll_free(s->components, free_comp);
+        } 
+        
 
         // free output mapping str list
         if (s->output_mappings != NULL) {
@@ -860,7 +861,7 @@ int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int s
     // copy the name, inputs and outputs of the standard into ns
     ns->name = malloc(strlen(std->subsys->name)+1);
     ns->components = ll_init();
-    ns->aliases = ll_init();
+    ns->aliases = NULL;
     strncpy(ns->name, std->subsys->name, strlen(std->subsys->name)+1);
 
 
@@ -2020,8 +2021,21 @@ int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id) {
         if ( (_en=add_to_lib(dest, only_gates_sub, 0, SUBSYSTEM)) ) return _en;
 
         // cleanup the array that was used for the components of this subsystem
-        ll_free(intermediate_components, 0);
+        Node *n = intermediate_components->head;
+        while (n!=NULL) {
+            Node *t = n->next;
+            if (n->type == SUBSYSTEM_N) {
+                free_subsystem(n->subsys, 0);
+            } else if (n->type == COMPONENT) {
+                // dont free
+            } else {
+                printf("nothing...?\n");
+            }
+            free(n);
+            n = t;
+        }
 
+        free(intermediate_components);
         // advance to the next subsystem to be translated
         node_ptr = node_ptr->next;
 
