@@ -285,6 +285,15 @@ int ll_add(LList *ll, Node* new_element);
 void ll_free(LList *l, int complete);
 
 /**
+ * @brief Print the contents of the given linked list.
+ * 
+ * @details Only here to make debugging easier :)
+ * 
+ * @param l The list whose contents will be printed.
+ */
+void ll_print(LList *l);
+
+/**
  * Reads up to n bytes from str (which is assumed to contain the data
  * necessary to define a gate) and parses the information into the fields
  * of g.

@@ -48,6 +48,33 @@ void ll_free(LList *l, int complete) {
     }
 }
 
+void ll_print(LList *l) {
+    fprintf(stderr, "[ ");
+    for(Node *n = l->head; n != NULL; n=n->next) {
+        if (n->type == COMPONENT) {
+            fprintf(stderr, "component {id: %d}, ", n->comp->id);
+        } else if (n->type == SUBSYSTEM_N) {
+            fprintf(stderr, "subsystem {%s}, ", n->subsys->name);
+        } else if (n->type == STANDARD) {
+            if (n->std->type == GATE) {
+                fprintf(stderr, "gate {%s}, ", n->std->gate->name);
+            } else if (n->std->type == SUBSYSTEM) {
+                fprintf(stderr, "subsystem {%s}, ", n->std->subsys->name);
+            } else {
+                fprintf(stderr, "unknown standard, ");
+            }
+        } else if (n->type == ALIAS) {
+            char *b = malloc(BUFSIZ);
+            alias_to_str(n->alias, b, BUFSIZ);
+            fprintf(stderr, "alias {%s}, ", b);
+            free(b);
+        } else {
+            fprintf(stderr, "unknown node, ");
+        }
+    }
+    fprintf(stderr, " ]\n");
+}
+
 void free_subsystem(Subsystem *s, int free_comp) {
 
     if (s!=NULL) {
@@ -367,7 +394,8 @@ int str_to_alias(char *str, Alias* a, Subsystem *s, int n){
     char *name     = split(&_str, MAP_DELIM);
     char *map_info = _str;
 
-    a->name = name;
+    a->name = malloc(sizeof(name)+1);
+    strncpy(a->name, name, strlen(name)+1);
     a->mapping = malloc(sizeof(Mapping));
     
     fprintf(stderr, "we will now attempt to resolve mapping '%s' within subsystem '%s'...\n", map_info, s->name);
@@ -662,9 +690,7 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
 
                         // create an alias
                         Alias *a = malloc(sizeof(Alias));
-                        a->name = split(&_line, MAP_DELIM);
-                        str_to_mapping(_line, s, a->mapping, strlen(_line));
-
+                        str_to_alias(_line, a, s, strlen(_line));
                         // add that alias to the subsystems aliases list
                         Node *n = malloc(sizeof(Node));
                         n->type = ALIAS;
@@ -1275,7 +1301,7 @@ int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n) {
                 fprintf(stderr, "the input refers to output '%s' of component '%s%d' but type '%s' has no such output\n", output_name, COMP_ID_PREFIX, id, comp->prototype->subsys->name);
                 return GENERIC_ERROR;
             }
-            
+
             // set the out_index of the mapping to the index of the referenced output
             m->out_index = output_index;
 
