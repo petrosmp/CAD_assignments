@@ -208,6 +208,7 @@ typedef struct component {
     int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
     char **inputs;          /* The names of the input signals of the component */
     Mapping **i_maps;       /* If the component is part of a standard subsystem, along the inputs there will be input mappings */
+    int buffer_index;       /* The index of the component in the simulation buffers */
 } Component;
 
 /**
@@ -591,7 +592,7 @@ Standard* search_in_lib(Netlist *lib, char *name);
  *  - NARG on failure because of null arguments
  *  - UNKNOWN_COMP on failure because of unseen component type
 */
-int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard);
+int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard, int *buffer_index);
 
 /**
  * Move x positions (forward) in the given list. Returns the node

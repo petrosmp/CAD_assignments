@@ -621,6 +621,9 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
         offset += nread;
         int index = -1;
 
+        int *comp_buffer_index = malloc(sizeof(int));  // the index of each parsed component in the simulation buffers
+        *comp_buffer_index = 0;
+
         if (strlen(line) != 0) {    // if the line is empty, skip it
 
             // if a line contains a gate declaration a new subsystem must be parsed
@@ -696,7 +699,7 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
                     // if it starts with a component declaration, create a component from it and add it to the subsystem
                     else if (starts_with(line, COMP_ID_PREFIX)) {
                         Component *c = malloc(sizeof(Component));
-                        if ( (_en=str_to_comp(line, c, strlen(line), lookup_lib, s, 1)) ) {
+                        if ( (_en=str_to_comp(line, c, strlen(line), lookup_lib, s, 1, comp_buffer_index)) ) {
                             fprintf(stderr, "%s:%d: component parsing failed\n", filename, line_no);
                             return _en;
                         }
@@ -748,6 +751,8 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
             }
 
         }
+
+        free(comp_buffer_index);
 
     }
 
@@ -810,7 +815,7 @@ Standard* search_in_lib(Netlist *lib, char *name) {
     return NULL;
 }
 
-int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard) {
+int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard, int *buffer_index) {
 
     if (str==NULL || c==NULL) {
         return NARG;
@@ -840,6 +845,10 @@ int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int 
     c->_inputc = str_to_list(_raw_inputs, &(c->inputs), IN_OUT_DELIM);
 
     c->is_standard=is_standard;
+
+    // set the buffer index and increment it
+    c->buffer_index = (*buffer_index);
+    (*buffer_index)++;
 
     // if needed, take care of the input mappings
     if ( (s!=NULL) && is_standard ) {
@@ -1424,7 +1433,7 @@ void lib_to_file_debug(Netlist *lib, char *filename, char *mode) {
     FILE *fp = fopen(filename, mode);
 
     // iterate through the contents of the library and print them
-    for (Node *n = lib->contents->head; n!=NULL; n=n->next) {
+    for (Node *n = lib->contents->head; n!=NULL && n->std!=NULL; n=n->next) {
 
         // handle each content according to its type
         if (n->std->type == GATE) {
@@ -1444,6 +1453,7 @@ void lib_to_file_debug(Netlist *lib, char *filename, char *mode) {
 
             // print the header line
             char *buf = malloc(MAX_LINE_LEN);
+
             subsys_hdr_to_str(n->std->subsys, buf, MAX_LINE_LEN);
             fprintf(fp, "%s\n", buf);
             free(buf);
@@ -1477,7 +1487,7 @@ void lib_to_file_debug(Netlist *lib, char *filename, char *mode) {
                     }
                 }
 
-                fprintf(fp, "\n");
+                fprintf(fp, "(index: %d)\n", comp->buffer_index);
             }
 
             // print the output mappings
