@@ -398,14 +398,7 @@ int str_to_alias(char *str, Alias* a, Subsystem *s, int n){
     strncpy(a->name, name, strlen(name)+1);
     a->mapping = malloc(sizeof(Mapping));
     
-    fprintf(stderr, "we will now attempt to resolve mapping '%s' within subsystem '%s'...\n", map_info, s->name);
-    
     int res = str_to_mapping(map_info, s, a->mapping, strlen(map_info));
-
-    char *a1 = malloc(BUFSIZ);
-    mapping_to_str(a->mapping, a1, BUFSIZ);
-    char *a2 = resolve_mapping(a->mapping, s);
-    fprintf(stderr, "it was resolved to '%s', which resolves to [%s]!\n", a1, a2);
 
     return res;
 
