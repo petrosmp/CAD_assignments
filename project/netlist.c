@@ -110,7 +110,6 @@ void free_subsystem(Subsystem *s, int free_comp) {
             ll_free(s->components, free_comp);
         } 
         
-
         // free output mapping str list
         if (s->output_mappings != NULL) {
             for (int i=0; i<s->_outputc; i++) {
@@ -314,7 +313,7 @@ int comp_to_str(Component *c, char *str, int n) {
     return 0;
 }
 
-int str_to_gate(char *str, Gate *g, int n) {
+int str_to_gate(char *str, Gate *g, int n, int parse_tt) {
 
     if (str==NULL || g==NULL) {
         return NARG;
@@ -333,9 +332,12 @@ int str_to_gate(char *str, Gate *g, int n) {
     // get the fields of the line
     char *name        = split(&_str, GENERAL_DELIM);
     char *raw_inputs  = split(&_str, GENERAL_DELIM);
+    char *truth_table = _str;
 
     // get the input list (get rid of the designation)
     char *_inputs = raw_inputs+strlen(INPUT_DESIGNATION);
+
+    
 
     // parse the input and output lists
     g->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
@@ -343,6 +345,11 @@ int str_to_gate(char *str, Gate *g, int n) {
     g->_inputc = str_to_list(_inputs, &(g->inputs), IN_OUT_DELIM);
     g->name = malloc(strlen(name)+1);
     strncpy(g->name, name, strlen(name)+1);
+    g->truth_table = parse_truth_table(truth_table);
+    
+    fprintf(stderr, "Printing truth table for %s:\n", name);
+    print_as_truth_table(g->truth_table, g->_inputc);
+    fprintf(stderr, "\n\n");
 
     return 0;
 }
@@ -429,6 +436,27 @@ int alias_to_str(Alias *a, char *str, int n) {
     return 0;
 }
 
+void free_alias(Alias *a) {
+
+    if (a != NULL) {
+
+        // free the name
+        if (a->name != NULL) {
+            free(a->name);
+        }
+
+        // free the mapping
+        if (a->mapping != NULL) {
+            free(a->mapping);
+        }
+
+        // free the alias itself
+        free(a);
+
+    }
+
+}
+
 void free_gate(Gate *g) {
 
     // free name
@@ -478,6 +506,8 @@ void free_node(Node *n, int complete) {
                 free_component(n->comp);
             } else if (n->type == SUBSYSTEM_N) {
                 free_subsystem(n->subsys, 1);
+            } else if (n->type == ALIAS) {
+                free_alias(n->alias);
             }
         }
 
@@ -543,7 +573,7 @@ int gate_lib_from_file(char *filename, Netlist* lib) {
 
                 // ...parse the line into a new gate...
                 Gate *g = malloc(sizeof(Gate));
-                if ( (_en=str_to_gate(line, g, strlen(line))) ) return _en; // strlen(line) and not nread, because they might differ (see read_line())
+                if ( (_en=str_to_gate(line, g, strlen(line), 1)) ) return _en; // strlen(line) and not nread, because they might differ (see read_line())
 
                 // ...create a standard from that new gate...
                 Standard *s = malloc(sizeof(Standard));
@@ -1753,6 +1783,7 @@ void print_as_truth_table(int tt, int inputs) {
 
         fprintf(stderr, " %d\t\n", eval_at(tt, inps));
 
+        free(inps);
     }
 
 }

@@ -138,6 +138,7 @@ typedef struct gate {
     char* name;                     /* The name of this gate (ASCII, human readable). */
     int _inputc;                    /* The number of inputs the gate has (mainly for internal use). */
     char** inputs;                  /* The names of the inputs of the gate. */
+    int truth_table;                /* The truth table of the gate, represented as a bitstring (integer) */
 } Gate;
 
 /**
@@ -306,7 +307,7 @@ void ll_print(LList *l);
  *  - NES on failure because of not enough space
  *  - NARG on failure because of null arguments.
 */
-int str_to_gate(char *str, Gate *g, int n);
+int str_to_gate(char *str, Gate *g, int n, int parse_tt);
 
 /**
  * Writes an ASCII representation of the given gate to str, writing no more
@@ -343,6 +344,13 @@ int str_to_alias(char *str, Alias* a, Subsystem *s, int n);
  *  @retval NARG on failure because of null arguments.
 */
 int alias_to_str(Alias *a, char *str, int n);
+
+/**
+ * @brief Properly free up the memory allocated for and taken up by the given alias.
+ * 
+ * @param a The alias whose memory should be freed.
+ */
+void free_alias(Alias *a);
 
 /**
  * Properly free up the memory allocated for and used by the given gate. 
