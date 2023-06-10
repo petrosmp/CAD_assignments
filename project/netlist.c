@@ -394,11 +394,20 @@ int str_to_alias(char *str, Alias* a, Subsystem *s, int n){
     char *name     = split(&_str, MAP_DELIM);
     char *map_info = _str;
 
+    fprintf(stderr, "split [%s] into name: [%s] and map_info: [%s]\n", str, name, map_info);
+
     a->name = malloc(sizeof(name)+1);
     strncpy(a->name, name, strlen(name)+1);
     a->mapping = malloc(sizeof(Mapping));
     
+    fprintf(stderr, "we will now attempt to resolve mapping '%s' within subsystem '%s'...\n", map_info, s->name);
+    
     int res = str_to_mapping(map_info, s, a->mapping, strlen(map_info));
+
+    char *a1 = malloc(BUFSIZ);
+    mapping_to_str(a->mapping, a1, BUFSIZ);
+    char *a2 = resolve_mapping(a->mapping, s);
+    fprintf(stderr, "it was resolved to '%s', which resolves to [%s]!\n", a1, a2);
 
     return res;
 
@@ -644,6 +653,8 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
                     line_no++;
                     offset += nread;
 
+                    fprintf(stderr, "\n\nread line [%s]\n", line);
+
                     // if it starts with something that is an output of the subsystem, it's an output mapping
                     if ( (index = index_starts_with(line, s->outputs, s->_outputc)) != -1) {
 
@@ -683,13 +694,19 @@ int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib) {
 
                         // create an alias
                         Alias *a = malloc(sizeof(Alias));
+                        fprintf(stderr, "\ncreating alias...\n");
                         str_to_alias(_line, a, s, strlen(_line));
+                        fprintf(stderr, "alias created! %s mapped to %s, %d, %d\n", a->name, a->mapping->type==SUBSYS_INPUT?"input":"component", a->mapping->index, a->mapping->out_index);
                         // add that alias to the subsystems aliases list
                         Node *n = malloc(sizeof(Node));
                         n->type = ALIAS;
                         n->alias = a;
                         n->next = NULL;
                         ll_add(s->aliases, n);
+
+                        fprintf(stderr, "\n\n\nAlias list updated:\n");
+                        ll_print(s->aliases);
+
                     }
 
                     // else it should be an END ... NETLIST line
@@ -1213,11 +1230,15 @@ int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n) {
     Node *mapping_node;
     char *last = NULL;
 
+    fprintf(stderr, "looking for [%s]...\n", str);
+
     // keep the name of the referenced signal (the part after the delim)        
     char *referenced_signal = str;
 
     // find if it is an input, an alias or a component('s output) and proceed accordingly
     if ( (input_index=contains(subsys->_inputc, subsys->inputs, referenced_signal)) != -1 ) {
+
+        fprintf(stderr, "it is an input\n");
 
         // then the mapping refers to one of the subsystem's inputs
         m->type = SUBSYS_INPUT;
@@ -1225,6 +1246,7 @@ int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n) {
         m->out_index = -1;
 
     } else if ( (mapping_node = search_in_llist(subsys->aliases, ALIAS, referenced_signal, strlen(referenced_signal), -1, NULL)) != NULL) {
+        fprintf(stderr, "it is a mapping\n");
 
         // then the mapping refers to another mapping (an alias)
         Mapping *other_mapping = mapping_node->alias->mapping;
@@ -1237,6 +1259,7 @@ int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n) {
     } else if (starts_with(referenced_signal, COMP_ID_PREFIX)) {
 
         // then the mapping refers to a component of the containing subsystem (or an ouput of one)        
+        fprintf(stderr, "it is a component\n");
 
         // the type is component either way
         m->type = SUBSYS_COMP;
@@ -1294,6 +1317,14 @@ int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n) {
                 fprintf(stderr, "the input refers to output '%s' of component '%s%d' but type '%s' has no such output\n", output_name, COMP_ID_PREFIX, id, comp->prototype->subsys->name);
                 return GENERIC_ERROR;
             }
+            
+            fprintf(stderr, "found %s at index %d of [", output_name, output_index);
+            
+            for (int i=0; i<comp->prototype->subsys->_outputc; i++) {
+                fprintf(stderr, "%s, ", comp->prototype->subsys->outputs[i]);
+            }
+
+            fprintf(stderr, " ]\n");
 
             // set the out_index of the mapping to the index of the referenced output
             m->out_index = output_index;
@@ -1620,6 +1651,12 @@ Standard *find_in_lib(Netlist *lib, char *name) {
 
 Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, int *index) {
 
+    fprintf(stderr, "\n\nsearching for node containing %s\n", str);// of type %s\n", str, t==COMPONENT?'component':t==SUBSYSTEM_N?'subsystem':t==STANDARD?'standard':'alias');
+
+    fprintf(stderr, "searching in: ");
+
+    ll_print(list);
+
     if (t != COMPONENT && str == NULL) {
         return NULL;
     }
@@ -1633,6 +1670,14 @@ Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, i
     // iterate through the list
     while (cur != NULL) {
 
+        fprintf(stderr, "\tlooking at a node for the type of which we know the following:\n");
+        fprintf(stderr, "\t\tcur is component: [%d]\n", cur->type==COMPONENT);
+        fprintf(stderr, "\t\tcur is subsystem: [%d]\n", cur->type==SUBSYSTEM_N);
+        fprintf(stderr, "\t\tcur is standard: [%d]\n", cur->type==STANDARD);
+        fprintf(stderr, "\t\tcur is alias: [%d]\n", cur->type==ALIAS);
+
+        //fprintf(stderr, "\tlooking at node of type %s...\n", cur->type==COMPONENT?'component':cur->type==SUBSYSTEM_N?'subsystem':cur->type==STANDARD?'standard':'alias');
+
         // increment the index counter if needed
         if (index != NULL) (*index)++;
 
@@ -1641,6 +1686,8 @@ Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, i
 
         // if the type matches
         if (cur->type == t) {
+
+            fprintf(stderr, "found matching node\n");
 
             // handle the case of a component (where we compare to the ID)
             if (t == COMPONENT) {
@@ -1664,6 +1711,7 @@ Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, i
                 name = cur->subsys->name;
             } else if (t == ALIAS) {
                 name = cur->alias->name;
+                fprintf(stderr, "and also here [%s]\n", name);
             } else {
                 return NULL;
             }
