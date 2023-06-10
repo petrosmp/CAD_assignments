@@ -287,3 +287,34 @@ int deepcopy_str_list(char ***dst, char **src, int n) {
     return n;
 
 }
+
+int decimal(char *bits) {
+    int res = 0;
+
+    for (int i=0; i<strlen(bits); i++) {
+        res <<= 1;
+        res += (bits[i] - '0');
+    }
+
+    return res;
+}
+
+char* binary(int x) {
+
+    int n = sizeof(int) * 8;
+    char* bits = (char*)malloc(n + 1);
+    bits[n] = '\0';
+
+    for (int i = n - 1; i >= 0; i--) {
+        bits[i] = (x & 1) ? '1' : '0';
+        x = x >> 1;
+    }
+
+    return bits;
+}
+
+int one_at_index(int size, int n) {
+    int res = 0;
+    res = (1<<((size-1)-n));
+    return res;
+}

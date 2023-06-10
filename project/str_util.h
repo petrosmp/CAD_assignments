@@ -174,3 +174,45 @@ void free_str_list(char **l, int lc);
  * there are null arguments.
 */
 int deepcopy_str_list(char ***dst, char **src, int n);
+
+/**
+ * @brief   Given a series of bits as a string (char array), return the decimal number
+ *          that those bits represent.
+ * 
+ * @param bits  The series of bits to be converted to decimal.
+ * @return The decimal representation of the number that the bits form.
+ */
+int decimal(char *bits);
+
+/**
+ * @brief   Convert a given integer to its binary represenation.
+ * 
+ * @note    The returned pointer is malloc()'ed in here, so remember to free it.
+ * 
+ * @param x     The integer to be converted to binary.
+ * @return      The binary representation of the given integer.
+ */
+char* binary(int x);
+
+/**
+ * @brief   Create a bit string of the given size that has a '1' n places to the right of
+ *          the MSB and all other bits are 0. The created bitstring can then be AND'ed with
+ *          another to only preserve a specific bit of the latter.
+ * 
+ * @details That means n=0 will only have '1' at the MSB and n=(size-1) will only preserve
+ *          the LSB.
+ * 
+ * @example one_at_index(5, 0) will return a bitstring of size 5, with a 1 in the MSB's place,
+ *          so '10000' (which is 16 in decimal).
+ * 
+ * @example one_at_index(6, 3) will return a bitstring of size 6, with a three places to the
+ *          right of the MSB, so '000100' (which is 4 in decimal).
+ * 
+ * @example one_at_index(4, 3) will return a bitstring of size 4, with a three places to the
+ *          right of the MSB, so '0001' (which is 1 in decimal).
+ * 
+ * @param size  The size of the desired bitstring.
+ * @param n     The number of places to the right of the MSB where the 1 should be.
+ * @return      The resulting bitstring as an integer
+ */
+int one_at_index(int size, int n);

@@ -775,5 +775,47 @@ Standard *find_in_lib(Netlist *lib, char *name);
  */
 Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, int *index);
 
+/**
+ * @brief   Given a string representing a truth table of a gate (in the format described in the project
+ *          specification), make it a bitstring and return it (in the form of an integer).
+ * 
+ * @note    Any non-bit characters (not '1' or '0') will be skipped.
+ * 
+ * @example     Suppose the input is '0, 1, 1, 0'. The bitstring would then be '0110', which means that
+ *              the number 6 will be returned.
+ * 
+ * @example     Suppose that the input is '0, 1'. The bitstring would then be '01', which means that the
+ *              number 1 will be returned.
+ * 
+ * @param _tt   The string containing the truth table.
+ * @return      The bitstring representing the given truth table.
+ */
+int parse_truth_table(char *_tt);
+
+/**
+ * @brief   Given a truth table in bitstring (integer) form and a set of inputs
+ *          as an array of characters, return a truth value (as an integer).
+ * 
+ * @note    The inputs array must be null terminated.
+ * 
+ * @param tt        The truth table.
+ * @param inputs    The inputs.
+ * @return The truth value of the table with the given inputs (1 or 0)
+ */
+int eval_at(int tt, char *inputs);
+
+/**
+ * @brief   Given a truth table in bitstring (integer) form, print it in a nice, human readable way.
+ * 
+ * @details To make debugging easy :)
+ * 
+ * @param tt        The truth table to be printed.
+ * @param inputs    The number of inputs that the truth table is expected to accomodate.
+ */
+void print_as_truth_table(int tt, int inputs);
+
+
+
+
 
 void old_lib_to_file(Netlist *lib, char *filename, char *mode, int mod);

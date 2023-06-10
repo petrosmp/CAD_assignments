@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include "netlist.h"
 #include "str_util.h"
 
@@ -1684,6 +1685,78 @@ Node* search_in_llist(LList *list, enum NODE_TYPE t, char *str, int n, int id, i
     return NULL;
 
 }
+
+int parse_truth_table(char *_tt) {
+
+    int truth_table_bits = 0;
+    for (int i=0; i<strlen(_tt); i++) {
+        char c = _tt[i];
+        
+        // skip any non-bit characters
+        if (c!='1' && c!='0') continue;
+
+        truth_table_bits <<= 1;
+        truth_table_bits += (c-'0');
+    }
+
+    return truth_table_bits;
+}
+
+int eval_at(int tt, char *inputs) {
+
+    int index = 0;
+    int n = strlen(inputs);
+    for(int i=0; i<n; i++) {
+
+
+        if (inputs[i]!='0' && inputs[i]!='1') {
+            fprintf(stderr, "invalid bit '%c' passed to eval() function\n", inputs[i]);
+            return -1; //TODO GENERIC ERROR
+        }
+        index <<= 1;
+        index += (inputs[i]-'0');
+    }
+
+    int filter = one_at_index(pow(2, n), index);
+
+    int res = tt & filter;
+
+    return res>>((int)pow(2, n)-1-index);
+}
+
+void print_as_truth_table(int tt, int inputs) {
+
+    int max_n = pow(2, inputs);
+
+    for(int i=0; i<inputs; i++) {
+        fprintf(stderr, "%c | ", 'A'+i);
+    }
+
+    fprintf(stderr, " O\n");
+
+    for(int i=0; i<(inputs*4)+2; i++) {
+        fprintf(stderr, "_");
+    }
+
+    fprintf(stderr, "\n");
+
+    for(int i=0; i<max_n; i++) {
+
+        char *inps = malloc(inputs+1);
+
+        for(int j=inputs-1; j>=0; j--) {
+            fprintf(stderr, "%d | ", (i>>j)&1);
+            inps[inputs-1-j] = ((i>>j)&1) + '0';
+        }
+
+        inps[inputs] = '\0';
+
+        fprintf(stderr, " %d\t\n", eval_at(tt, inps));
+
+    }
+
+}
+
 
 
 /**
