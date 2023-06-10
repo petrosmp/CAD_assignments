@@ -337,19 +337,16 @@ int str_to_gate(char *str, Gate *g, int n, int parse_tt) {
     // get the input list (get rid of the designation)
     char *_inputs = raw_inputs+strlen(INPUT_DESIGNATION);
 
-    
-
-    // parse the input and output lists
-    g->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
-
-    g->_inputc = str_to_list(_inputs, &(g->inputs), IN_OUT_DELIM);
+    // parse the name
     g->name = malloc(strlen(name)+1);
     strncpy(g->name, name, strlen(name)+1);
+
+    // parse the input list
+    g->inputs = NULL;   // initialize to NULL so initial call to realloc is like malloc
+    g->_inputc = str_to_list(_inputs, &(g->inputs), IN_OUT_DELIM);
+
+    // parse the truth table
     g->truth_table = parse_truth_table(truth_table);
-    
-    fprintf(stderr, "Printing truth table for %s:\n", name);
-    print_as_truth_table(g->truth_table, g->_inputc);
-    fprintf(stderr, "\n\n");
 
     return 0;
 }
