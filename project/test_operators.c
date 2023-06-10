@@ -79,12 +79,25 @@ int main(int argc, char *argv[]) {
     // print the gates-only netlist to the file
     netlist_to_file(only_gates_lib, output_file, "w");
 
+
+    // parse the new lib
+    // read the netlist where the n-bit full adder is described
+    Netlist *only = malloc(sizeof(Netlist));
+    if (subsys_lib_from_file(output_file, only, gate_lib)) {
+        printf("There was an error, the program terminated abruptly!\n");
+        return -1;
+    }
+
+    lib_to_file_debug(only, "only.txt", "w");
+
+
+
     // cleanup
     free_lib(lib);
     free_lib(gate_lib);
     free_lib(netlist);
     free_lib(only_gates_lib);
-
+    free_lib(only);
     printf("Program executed successfully\n");
 
     return 0;
