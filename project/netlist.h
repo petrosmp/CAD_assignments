@@ -265,6 +265,17 @@ typedef struct alias {
 } Alias;
 
 /**
+ * @brief   A testbench is an instance of a simulation of a circuit. It consists of the UUT,
+ *          the values that will be tested as inputs and the outputs that will be displayed.
+ */
+typedef struct testbench {
+    Subsystem *uut;     /* the Unit Under Test, the subsystem whose function will be simulated */
+    char ***values;     /* the list of values that will be tried for each input */
+    int v_c;            /* the number of values (and thus simulations) that this testbench provides */
+    int *outs_display;  /* a list of booleans indicating whether or not each output should be displayed (all 0 by default) */
+} Testbench;
+
+/**
  * @brief Initialize a linked list instance.
  * 
  * @details Allocate memory for the list and sets head and tail to NULL.
@@ -272,7 +283,6 @@ typedef struct alias {
  * @return The newly created list
  */
 LList* ll_init();
-
 
 /**
  * Add the given node to the given linked list.
