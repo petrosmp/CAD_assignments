@@ -1851,7 +1851,7 @@ int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
 
         // check that it is a bit
         if (c!='1' && c !='0') {
-            fprintf(stderr, "unexpected (non-bit) value found for input %d: '%c'\n", i+1, c);
+            fprintf(stderr, "unexpected (non-bit) value found for input %s of subsystem %s: '%c'\n", s->inputs[i], s->name, c);
             return GENERIC_ERROR;
         }
 
