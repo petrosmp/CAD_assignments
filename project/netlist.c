@@ -1,3 +1,18 @@
+/**
+ * @file    netlist.c
+ * 
+ * @author  Petros Bimpiris (pbimpiris@tuc.gr)
+ * 
+ * @brief   Implementations of the functions declared in the netlist.h header file.
+ * 
+ * @version 0.1
+ * 
+ * @date 11-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -806,40 +821,6 @@ void free_lib(Netlist *lib) {
         // free the lib itself
         free(lib);
     }
-}
-
-Standard* search_in_lib(Netlist *lib, char *name) {
-
-
-    if (lib==NULL || name==NULL) {
-        return NULL;
-    }
-
-    Standard *r_std = NULL;
-    Node *n = lib->contents->head;
-
-    while (n!= NULL) {
-
-        if (n->type != STANDARD) return NULL;
-        if (n->std == NULL) return NULL;
-
-        // check the name of the standard in the current node appropriately        
-        r_std = n->std;
-        if (r_std->type == GATE) {
-            if ((strlen(name) == strlen(r_std->gate->name)) && (strncmp(r_std->gate->name, name, strlen(name)) == 0)) {
-                return r_std;
-            }
-        } else if (r_std->type == SUBSYSTEM) {
-            if ((strlen(name) == strlen(r_std->subsys->name)) &&  (strncmp(r_std->subsys->name, name, strlen(name)) == 0)) {
-                return r_std;
-            }
-        }
-        
-        // move on to the next node
-        n=n->next;
-    }
-
-    return NULL;
 }
 
 int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard, int *buffer_index) {

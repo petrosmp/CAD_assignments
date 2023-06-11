@@ -1,47 +1,58 @@
 /**
- * \file Custom set of structures and functions that make working with
- * component libraries (only containing subsystems) cleaner
- * and allow for code reuse and easy modification.
-*/
+ * @file    netlist.h
+ * 
+ * @author  Petros Bimpiris (pbimpiris@tuc.gr)
+ * 
+ * @brief   Custom set of structures and functions that make working with low-level
+ *          Circuit Design concepts cleaner and allow for code reuse and easy
+ *          modification
+ * 
+ * @version 0.1
+ * 
+ * @date 11-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ */
+
 
 #include "str_util.h"
 #include <stdio.h>
 
-#define DECL_DESIGNATION "COMP "    /* The word that signifies that a line declares a subsystem */
-#define INPUT_DESIGNATION "IN: "    /* The word that signifies that the next part of a string is the inputs of the subsystem. */
-#define OUTPUT_DESIGNATION "OUT: "  /* The word that signifies that the next part of a string is the outputs of the subsystem. */
-#define IN_OUT_DELIM ", "           /* The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
-#define GENERAL_DELIM " ; "         /* The delimiter that separates fields. */
-#define COMP_ID_PREFIX "U"          /* The prefix of every component id. When printing component c, COMP_ID_PREFIX<c.id> will be printed */
-#define COMP_DELIM  " "             /* The delimiter separating the attributes of a component */
-#define MAX_LINE_LEN 512            /* The maximum allowed length of a line in a netlist file */
-#define COMMENT_PREFIX "%%"         /* The prefix of any comment line */
-#define KEYWORD_PREFIX "**"         /* The prefix of any keyword line */
-#define NETLIST_START "BEGIN "      /* The word that signifies that a netlist is contained in the following lines */
-#define NETLIST_END "END "          /* The word that signifies that a netlist ends in this line */
-#define UNEXPECTED_EOF -2           /* Error code returned when a file ends unexpectedly, leaving a netlist incomplete */
-#define SYNTAX_ERROR -3             /* Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
-#define UNKNOWN_COMP -4             /* Error code returned when a netlist contains a component that we have not seen in any library */
-#define MAP_DELIM " = "             /* The delimiter between a mapping's name and its "target" in a netlist */
-#define ENTITY_START "ENTITY"       /* The string that indicates that an entity declaration starts in this line */
-#define ENTITY_END "END"            /* The string that indicates that an entity declaration ends in this line */
-#define VAR_DECLARATION "VAR"       /* The string that indicates that a line contains a variable declaration */
-#define VAR_ASSIGNMENT "= "         /* The string that lies between a variables name and its value */
-#define PORT_START "PORT ("         /* The string that indicates that a port map begins in this line */
-#define PORT_END ");"               /* The string that indicates that a port map begins in this line */
-#define PORT_MAP_INPUT "IN"         /* The string that indicates that a port map line contains an input signal */
-#define PORT_MAP_OUTPUT "OUT"       /* The string that indicates that a port map line contains an output signal */
-#define PORT_MAP_DELIM " "          /* The delimiter that separates fields in a port map line */
-#define PORT_MAP_SIGNAL_DELIM " , " /* The delimiter that separates (input/output) signals in a port map */
-#define PORT_MAP_COLON ": "         /* The delimiter between the input/output declarations and the signal names */
-#define REQUIREMENT_DECL "LIB"      /* The string that indicates that a required subsystem is specified in this line */
-#define MAP_COMP_OUT_SEP "_"        /* The string that separates the component ID from the output name in a mapping */
-#define GENERIC_ERROR -7            /* Error code indicating an error that does not fall under a specific category. An error message will usually be printed to clarify. */
-#define SIM_INPUT_DELIM     ", "    /* The string separating the inputs in the format that simulate() accepts */
-#define TESTBENCH_IN        "IN"    /* The string that indicates that the following lines in a testbench file contain input values */
-#define TESTBENCH_OUT       "OUT"   /* The string that indicates that the following lines in a testbench file contain names of outputs whose values should be printed */
-#define TB_GENERAL_DELIM    " "     /* A general delimiter for testbench files */
-#define TB_IN_VAL_DELIM     ", "    /* The string that separates the input values of one test from the next in a testbench file */
+#define DECL_DESIGNATION "COMP "    /**< The word that signifies that a line declares a subsystem */
+#define INPUT_DESIGNATION "IN: "    /**< The word that signifies that the next part of a string is the inputs of the subsystem. */
+#define OUTPUT_DESIGNATION "OUT: "  /**< The word that signifies that the next part of a string is the outputs of the subsystem. */
+#define IN_OUT_DELIM ", "           /**< The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
+#define GENERAL_DELIM " ; "         /**< The delimiter that separates fields. */
+#define COMP_ID_PREFIX "U"          /**< The prefix of every component id. When printing component c, COMP_ID_PREFIX<c.id> will be printed */
+#define COMP_DELIM  " "             /**< The delimiter separating the attributes of a component */
+#define MAX_LINE_LEN 512            /**< The maximum allowed length of a line in a netlist file */
+#define COMMENT_PREFIX "%%"         /**< The prefix of any comment line */
+#define KEYWORD_PREFIX "**"         /**< The prefix of any keyword line */
+#define NETLIST_START "BEGIN "      /**< The word that signifies that a netlist is contained in the following lines */
+#define NETLIST_END "END "          /**< The word that signifies that a netlist ends in this line */
+#define UNEXPECTED_EOF -2           /**< Error code returned when a file ends unexpectedly, leaving a netlist incomplete */
+#define SYNTAX_ERROR -3             /**< Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
+#define UNKNOWN_COMP -4             /**< Error code returned when a netlist contains a component that we have not seen in any library */
+#define MAP_DELIM " = "             /**< The delimiter between a mapping's name and its "target" in a netlist */
+#define ENTITY_START "ENTITY"       /**< The string that indicates that an entity declaration starts in this line */
+#define ENTITY_END "END"            /**< The string that indicates that an entity declaration ends in this line */
+#define VAR_DECLARATION "VAR"       /**< The string that indicates that a line contains a variable declaration */
+#define VAR_ASSIGNMENT "= "         /**< The string that lies between a variables name and its value */
+#define PORT_START "PORT ("         /**< The string that indicates that a port map begins in this line */
+#define PORT_END ");"               /**< The string that indicates that a port map begins in this line */
+#define PORT_MAP_INPUT "IN"         /**< The string that indicates that a port map line contains an input signal */
+#define PORT_MAP_OUTPUT "OUT"       /**< The string that indicates that a port map line contains an output signal */
+#define PORT_MAP_DELIM " "          /**< The delimiter that separates fields in a port map line */
+#define PORT_MAP_SIGNAL_DELIM " , " /**< The delimiter that separates (input/output) signals in a port map */
+#define PORT_MAP_COLON ": "         /**< The delimiter between the input/output declarations and the signal names */
+#define REQUIREMENT_DECL "LIB"      /**< The string that indicates that a required subsystem is specified in this line */
+#define MAP_COMP_OUT_SEP "_"        /**< The string that separates the component ID from the output name in a mapping */
+#define GENERIC_ERROR -7            /**< Error code indicating an error that does not fall under a specific category. An error message will usually be printed to clarify. */
+#define SIM_INPUT_DELIM     ", "    /**< The string separating the inputs in the format that simulate() accepts */
+#define TESTBENCH_IN        "IN"    /**< The string that indicates that the following lines in a testbench file contain input values */
+#define TESTBENCH_OUT       "OUT"   /**< The string that indicates that the following lines in a testbench file contain names of outputs whose values should be printed */
+#define TB_GENERAL_DELIM    " "     /**< A general delimiter for testbench files */
+#define TB_IN_VAL_DELIM     ", "    /**< The string that separates the input values of one test from the next in a testbench file */
 
 /**
  * Since a single node structure is used for all linked list needs of the
@@ -51,10 +62,10 @@
  * the new node type if you add a new node type.
 */
 enum NODE_TYPE {
-    STANDARD,       /* The node contains a standard subsystem (as read from a library) */
-    SUBSYSTEM_N,    /* The node contains a functional subsystem (as described in a netlist) */
-    COMPONENT,      /* The node contains a component (any part of a subsystem) */
-    ALIAS           /* The node contains an alias of a signal */
+    STANDARD,       /**< The node contains a standard subsystem (as read from a library) */
+    SUBSYSTEM_N,    /**< The node contains a functional subsystem (as described in a netlist) */
+    COMPONENT,      /**< The node contains a component (any part of a subsystem) */
+    ALIAS           /**< The node contains an alias of a signal */
 };
 
 /**
@@ -68,8 +79,8 @@ enum NODE_TYPE {
  * search_in_llist to find the 'name' of the new standard type.
 */
 enum STANDARD_TYPE {
-    GATE,       /* The standard describes a gate */
-    SUBSYSTEM   /* The standard describes a subsystem */
+    GATE,       /**< The standard describes a gate */
+    SUBSYSTEM   /**< The standard describes a subsystem */
 };
 
 /**
@@ -78,125 +89,132 @@ enum STANDARD_TYPE {
  * but ultimately a gate).
 */
 enum MAPPING_TYPE {
-    SUBSYS_INPUT,   /* The input/output is coming from the subsystem's input  list */
-    SUBSYS_COMP     /* The input/output is another component (gate) in the subsystem */
+    SUBSYS_INPUT,   /**< The input/output is coming from the subsystem's input  list */
+    SUBSYS_COMP     /**< The input/output is another component (gate) in the subsystem */
 };
 
 /**
- * A component contained in a standard subsystem has a dynamic way of
- * mapping its inputs/outputs to the subsystem, so that with any given
- * set of inputs to the subsystem, the component's inputs/outputs can
- * be set accordingly.
+ * @brief   A dynamic way of referring to inputs and components of a subsystem.
  * 
- * Let c be a component contained in a subsystem s. Then c can have in
- * each of its inputs either an input of s or an output of another
- * component of s.
+ * @details A component contained in a standard subsystem has a dynamic way of
+ *          mapping its inputs/outputs to the subsystem, so that with any given
+ *          set of inputs to the subsystem, the component's inputs/outputs can
+ *          be set accordingly.
  * 
- * The same is true for any output mapping of s.
-*/
+ * @example Let c be a component contained in a subsystem s. Then c can have in
+ *          each of its inputs either an input of s or an output of another
+ *          component of s.
+ * 
+ *          The same is true for any output mapping of s.
+ */
 typedef struct mapping {
-    enum MAPPING_TYPE type; /* The type of the mapping */
-    int index;              /* The index (either of the subsystems input or of the component) */
-    int out_index;          /* The index of the output in case this refers to a component */
+    enum MAPPING_TYPE type; /**< The type of the mapping */
+    int index;              /**< The index (either of the subsystems input or of the component) */
+    int out_index;          /**< The index of the output in case this refers to a component */
 } Mapping;
 
 /**
- * Nodes are the building blocks of the linked lists that contain
- * the standards defined in libraries.
+ * @brief   The basic building block of every linked list used in this project.
  * 
- * They contain a standard an a pointer to the next node in the list.
-*/
+ * @details Apart from the data and the 'next' pointer, a node also contains its
+ *          type, to make distinguishing between nodes with different data easier.
+ */
 typedef struct node {
-    enum NODE_TYPE type;    /* The type of data the node contains */
+    enum NODE_TYPE type;            /**< The type of data the node contains */
     union {
-        struct standard *std;       /* The standard the node contains */
-        struct subsystem *subsys;   /* The subsystem the node contains */
-        struct component *comp;     /* The component the node contains */
-        struct alias *alias;        /* The alias the node contains */
+        struct standard *std;       /**< The standard the node contains */
+        struct subsystem *subsys;   /**< The subsystem the node contains */
+        struct component *comp;     /**< The component the node contains */
+        struct alias *alias;        /**< The alias the node contains */
     };
-    struct node *next;             /* The next node in the list */
+    struct node *next;              /**< The next node in the list */
 } Node;
 
 /**
- * A library is a collection of standards, usually read from a file.
- * It can either contain subsystems or gates (technically it can contain
- * both, but we use separate libraries for each).
+ * @brief   A collection of `things`: because of the versatility of the node structure
+ *          a Netlist can either be a library (containing standards) or represent a
+ *          file that just contains multiple subsystems.
  * 
- * It contains a linked list with the standards it contains, as well as
- * the name of the file in which they were defined.
-*/
+ * @details It contains a linked list with the `things` it contains, as well as
+ *          the name of the file in which they were defined.
+ */
 typedef struct netlist {
-    enum STANDARD_TYPE type;        /* The possible types are the same  */
-    struct linked_list *contents;   /* The contents of the library */
-    char *file;                     /* The file the library was defined in */
+    enum STANDARD_TYPE type;        /**< The possible types are the same  */
+    struct linked_list *contents;   /**< The contents of the library */
+    char *file;                     /**< The file the library was defined in */
 } Netlist;
 
 /**
- * A gate is assumed to be the basic building block of everything. It only
- * has one outputs but can have an arbitrary number of inputs.
+ * @brief   The basic building block of every circuit. A gate has only one output but
+ *          can have any number of inputs (or almost any - see details).
  * 
- * Gates are defined in a component library and can be used as components
- * of subsystems.
-*/
+ * @details Gates are defined in a component library and can be used as components of subsystems.
+ * 
+ *          With the addition of truth tables, and with the choice to represent them as a bitstring (i.e. an
+ *          integer), came the limitation of gates having up to sizeof(int)*8 (usually =32) inputs. Of course
+ *          this could be overcome by replacing the integer with a long, or a long long, but what gate could/would
+ *          have that many inputs?
+ */
 typedef struct gate {
-    char* name;                     /* The name of this gate (ASCII, human readable). */
-    int _inputc;                    /* The number of inputs the gate has (mainly for internal use). */
-    char** inputs;                  /* The names of the inputs of the gate. */
-    int truth_table;                /* The truth table of the gate, represented as a bitstring (integer) */
+    char* name;                     /**< The name of this gate (ASCII, human readable). */
+    int _inputc;                    /**< The number of inputs the gate has (mainly for internal use). */
+    char** inputs;                  /**< The names of the inputs of the gate. */
+    int truth_table;                /**< The truth table of the gate, represented as a bitstring (integer) */
 } Gate;
 
 /**
- * A subsystem is a circuit with both inputs and outputs, comprised by
- * gates or other subsystems.
+ * @brief   A circuit with both inputs and outputs, comprised by
+ *          gates or other subsystems.
  * 
- * Subsystems are initially defined in a subsystem library and once defined
- * they can be used as components in other subsystems.
-*/
+ * @details Subsystems are initially defined in a subsystem library and once defined
+ *          they can be used as components in other subsystems.
+ * 
+ *          Due to the dynamic nature of the structures used to implement them (linked lists!),
+ *          subsystems can contain an arbitrarily high (or low) number of components.
+ */
 typedef struct subsystem {
-    char* name;                     /* The name of this subsystem (ASCII, human readable). */
-    int _inputc;                    /* The number of inputs the subsystem has (mainly for internal use). */
-    char** inputs;                  /* The names of the inputs of the subsystem. */
-    int _outputc;                   /* The number of outputs the subsystem has (mainly for internal use). */
-    char** outputs;                 /* The names of the outputs of the subsystem. */
-    struct linked_list *components; /* The list of the subsystem components */
-    char **output_mappings;         /* The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
-    int is_standard;                /* Boolean flag indicating whether the subsystem is a standard one */
-    Mapping **o_maps;               /* If the subsystem is a standard one, along the outputs there will be output mappings */
-    struct linked_list *aliases;    /* The signal aliases that the netlist in which the subsystem was defined used. Useful only during parsing. */
+    char* name;                     /**< The name of this subsystem (ASCII, human readable). */
+    int _inputc;                    /**< The number of inputs the subsystem has (mainly for internal use). */
+    char** inputs;                  /**< The names of the inputs of the subsystem. */
+    int _outputc;                   /**< The number of outputs the subsystem has (mainly for internal use). */
+    char** outputs;                 /**< The names of the outputs of the subsystem. */
+    struct linked_list *components; /**< The list of the subsystem components */
+    char **output_mappings;         /**< The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
+    int is_standard;                /**< Boolean flag indicating whether the subsystem is a standard one */
+    Mapping **o_maps;               /**< If the subsystem is a standard one, along the outputs there will be output mappings */
+    struct linked_list *aliases;    /**< The signal aliases that the netlist in which the subsystem was defined used. Useful only during parsing. */
 } Subsystem;
 
 /**
- * A standard is a subsystem or gate read from a library file and
- * used inside components to indicate the type and basic properties
- * of each component.
+ * @brief   A subsystem or gate read from a library file and used as a property of components
+ *          to indicate their type and basic properties.
  * 
- * For example, if "c" is a component we know nothing about, we can
- * find information regarding its name, inputs and outputs from its
- * standard, which must have been read from a library.
-*/
+ * @example If "c" is a component we know nothing about, we can find information regarding
+ *          its name, inputs and outputs from its standard, which must have been read from a library.
+ */
 typedef struct standard {
 
-    enum STANDARD_TYPE type;/* The type of circuit this standard defines (gate or subsystem) */
+    enum STANDARD_TYPE type;    /**< The type of circuit this standard defines (gate or subsystem) */
     union {
-        Subsystem* subsys;  /* The subsystem this standard defines */
-        Gate* gate;         /* The gate this standard defines */
+        Subsystem* subsys;      /**< The subsystem this standard defines */
+        Gate* gate;             /**< The gate this standard defines */
     };
-    Netlist *defined_in;    /* The library in which this standard is defined */
+    Netlist *defined_in;        /**< The library in which this standard is defined */
 
 } Standard;
 
 /**
- * A component is an instance of a subsystem as part of a circuit.
+ * @brief   An instance of a subsystem/gate as part of a circuit.
  * 
- * Components defined inside standard subsystems (read from libraries)
- * will also have a series of input mappings to represent the way that
- * the inputs of the component are mapped inside the subsystem (to other
- * components or to the subsystem's inputs).
+ * @details Components defined inside standard subsystems (read from libraries)
+ *          will also have a series of input mappings to represent the way that
+ *          the inputs of the component are mapped inside the subsystem (to other
+ *          components or to the subsystem's inputs).
  * 
  * 
- * For example, the following part of a netlist describes a system
- * with 2 components (full adders). Each one has an id, is assosiated
- * with a subsystem and has some signals as inputs.
+ * @example The following part of a netlist describes a system
+ *          with 2 components (full adders). Each one has an id, is assosiated
+ *          with a subsystem and has some signals as inputs.
  * 
  * COMP FULL_ADDER2 ; IN: A0,A1,B0,B1,Cin ; OUT: S0, S1, Cout
  * BEGIN FULL_ADDER2 NETLIST 
@@ -206,21 +224,21 @@ typedef struct standard {
  * END FULL_ADDER2 NETLIST
 */
 typedef struct component {
-    int id;                 /* The unique ID of the component */
-    Standard *prototype;    /* The subsystem that the component is an instance of */
-    int is_standard;        /* Boolean flag indicating whether the component is contained in a standard subsystem */
-    int _inputc;            /* The number of inputs (more precisely, input mappings) the component has */
-    char **inputs;          /* The names of the input signals of the component */
-    Mapping **i_maps;       /* If the component is part of a standard subsystem, along the inputs there will be input mappings */
-    int buffer_index;       /* The index of the component in the simulation buffers */
+    int id;                 /**< The unique ID of the component */
+    Standard *prototype;    /**< The subsystem/gate that the component is an instance of */
+    int is_standard;        /**< Boolean flag indicating whether the component is contained in a standard subsystem */
+    int _inputc;            /**< The number of inputs (more precisely, input mappings) the component has */
+    char **inputs;          /**< The names of the input signals of the component */
+    Mapping **i_maps;       /**< If the component is part of a standard subsystem, along the inputs there will be input mappings */
+    int buffer_index;       /**< The index of the component in the simulation buffers */
 } Component;
 
 /**
- * A singly linked list, containing pointers to its first and last nodes.
-*/
+ * @brief   A singly linked list, containing pointers to its first and last nodes.
+ */
 typedef struct linked_list {
-    Node *head;     /* the first element of the list */
-    Node *tail;     /* the last element in the list */
+    Node *head;     /**< The first element of the list */
+    Node *tail;     /**< The last element in the list */
 } LList;
 
 /**
@@ -264,8 +282,8 @@ typedef struct linked_list {
  * 
 */
 typedef struct alias {
-    char *name;         /* the name of the alias (how it will be referred to in a netlist) */
-    Mapping *mapping;   /* a mapping to the thing that this is an alias of */
+    char *name;         /**< The name of the alias (how it will be referred to in a netlist) */
+    Mapping *mapping;   /**< A mapping to the thing that this is an alias of */
 } Alias;
 
 /**
@@ -273,10 +291,10 @@ typedef struct alias {
  *          the values that will be tested as inputs and the outputs that will be displayed.
  */
 typedef struct testbench {
-    Subsystem *uut;     /* the Unit Under Test, the subsystem whose function will be simulated */
-    char ***values;     /* the list of values that will be tried for each input */
-    int v_c;            /* the number of values (and thus simulations) that this testbench provides */
-    int *outs_display;  /* a list of booleans indicating whether or not each output should be displayed (all 0 by default) */
+    Subsystem *uut;     /**< The Unit Under Test, the subsystem whose function will be simulated */
+    char ***values;     /**< The list of values that will be tried for each input */
+    int v_c;            /**< The number of values (and thus simulations) that this testbench provides */
+    int *outs_display;  /**< A list of booleans indicating whether or not each output should be displayed (all 0 by default) */
 } Testbench;
 
 /**
@@ -289,15 +307,23 @@ typedef struct testbench {
 LList* ll_init();
 
 /**
- * Add the given node to the given linked list.
-*/
+ * @brief   Add the given node to the given linked list.
+ * 
+ * @param ll            The list to which the new node will be added
+ * @param new_element   The node that will be added to the list
+ * @retval 0 on success
+ * @retval nonzero error code on error
+ */
 int ll_add(LList *ll, Node* new_element);
 
 /**
- * Properly free the list pointed to by l, node by node.
- * The 'complete' flag indicates whether (1) or not (0) the contents
- * of the nodes should also be free()'d.
-*/
+ * @brief   Properly free the list pointed to by l, node by node. The 'complete'
+ *          flag indicates whether (1) or not (0) the contents of the nodes should
+ *          also be free()'d.
+ * 
+ * @param l         The list that will be freed
+ * @param complete  Whether the contents of the nodes should be freed as well
+ */
 void ll_free(LList *l, int complete);
 
 /**
@@ -310,36 +336,48 @@ void ll_free(LList *l, int complete);
 void ll_print(LList *l);
 
 /**
- * Reads up to n bytes from str (which is assumed to contain the data
- * necessary to define a gate) and parses the information into the fields
- * of g.
+ * @brief   Read up to n bytes from str (which is assumed to contain the data necessary
+ *          to define a gate) and parses the information into the fields of g.
  * 
- * Does not allocate memory for the gate itself but does for every input
- * and the input list itself.
+ * @details Does not allocate memory for the gate itself but does for every input
+ *          and the input list itself.
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @param str       The string that will be parsed
+ * @param g         The gate whose fields will be set
+ * @param n         The maximum number of bytes that can be read from the string
+ * @param parse_tt  A boolean flag indicating whether (1) or not (0) to also parse the
+ *                  truth table for the gate.
+ * 
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int str_to_gate(char *str, Gate *g, int n, int parse_tt);
 
 /**
- * Writes an ASCII representation of the given gate to str, writing no more
- * than n bytes, null terminator ('\0') included.
+ * @brief   Write an ASCII representation of the given gate to str, writing no more
+ *          than n bytes, null terminator ('\0') included.
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @param g     The gate whose data will be written to the string
+ * @param str   The string to which the gate data will be written
+ * @param n     The maximum number of bytes that can be written to the string
+ * 
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int gate_to_str(Gate *g, char *str, int n);
 
 /**
- * Read up to n bytes from str and parse the information into the fields
- * of a. Everything that a refers to will be looked for in s. @see resolve_mapping()
+ * @brief   Read up to n bytes from str and parse the information into the fields
+ *          of a. Everything that a refers to will be looked for in s. @see resolve_mapping()
  * 
- * Does not allocate memory for the alias itself, but does for the mapping.
+ * @details Does not allocate memory for the alias itself, but does for the mapping.
+ * 
+ * @param str   The str from which the data will be read
+ * @param a     The alias into which the data will be parsed
+ * @param s     The subsystem that this alias belongs to (and thus its mapping refers to)
+ * @param n     The maximum number of bytes that can be read from the string
  * 
  * @return exactly what @ref str_to_mapping does.
  * 
@@ -351,12 +389,16 @@ int gate_to_str(Gate *g, char *str, int n);
 int str_to_alias(char *str, Alias* a, Subsystem *s, int n);
 
 /**
- * Writes an ASCII representation of the given alias to str, writing no more
- * than n bytes, null terminator ('\0') included.
+ * @brief   Writes an ASCII representation of the given alias to str, writing no more
+ *          than n bytes, null terminator ('\0') included.
  * 
- *  @retval 0 on success
- *  @retval NES on failure because of not enough space
- *  @retval NARG on failure because of null arguments.
+ * @param a     The alias whose data will be written to the string
+ * @param str   The string to which the data will be written
+ * @param n     The maximum number of bytes that can be written to the string
+ * 
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
 */
 int alias_to_str(Alias *a, char *str, int n);
 
@@ -368,21 +410,27 @@ int alias_to_str(Alias *a, char *str, int n);
 void free_alias(Alias *a);
 
 /**
- * Properly free up the memory allocated for and used by the given gate. 
-*/
+ * @brief   Properly free up the memory allocated for and used by the given gate. 
+
+ * 
+ * @param g The gate that will be freed
+ */
 void free_gate(Gate *g);
 
 /**
- * Properly free up the memory allocated for and used by a standard.
-*/
+ * @brief   Properly free up the memory allocated for and used by a standard.
+ * 
+ * @param s     The standard that will be freed
+ */
 void free_standard(Standard *s);
 
 /**
- * Properly free up the memory allocated for and used by a node.
+ * @brief   Properly free up the memory allocated for and used by a node.
+
  * 
- * complete is a flag indicating whether the contents of the node should
- * be deleted too.
-*/
+ * @param n         The node that will be freed
+ * @param complete  Whether (1) or not (0) the contents of the node will be freed as well
+ */
 void free_node(Node *n, int complete);
 
 /**
@@ -397,147 +445,165 @@ void free_node(Node *n, int complete);
 void free_tb(Testbench *tb);
 
 /**
- * Add the given standard to (the end of) the given library.
+ * @brief   Add the given `thing` (standard/subsystem/gate) to (the end of) the given library.
  * 
- * Allocates memory for the new node that the standard will
- * use to connect to the library.
+ * @details Allocates memory for the new node that the standard will
+ *          use to connect to the library.
  * 
- * The standard is assumed to already be initialized. The data
- * it contains are not modified.
+ *          The standard is assumed to already be initialized. The data
+ *          it contains are not modified.
  * 
- * Returns:
- *  - 0 on success
- *  - NARG on failure because of null arguments.
-*/
+ * @param lib           The library to which the given `thing` will be added
+ * @param s             The `thing` to be added to the library.
+ * @param is_standard   Whether or not the `thing` is a standard
+ * @param type          The type of the `thing` - GATE/SUBSYSTEM
+ *
+ * @retval 0 on success
+ * @retval NARG on failure because of null arguments.
+ */
 int add_to_lib(Netlist *lib, void* s, int is_standard, enum STANDARD_TYPE type);
 
 /**
- * Parse the contents of a file into standards and store them in the given
- * library.
+ * @brief   Parse the contents of a file into standards and store them in the given
+ *          library.
  * 
- * Does not allocate memory for the library, this has to be done by the caller.
- * The memory is assumed to be newly allocated, so if called on an already
- * initialized library, memory leaks are around the corner.
+ * @param filename  The name of the file that will be parsed into a library of gates
+ * @param lib       The library that will contain all the gates found in the file
  * 
- * Reads the file line by line, and ignores any line starting with "%%" or
- * "**".
- * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int gate_lib_from_file(char *filename, Netlist* lib);
 
 /**
- * Properly free up the memorey allocated for and used by a library and
- * its members.
-*/
+ * @brief   Properly free up the memorey allocated for and used by a library and
+ *          its members.
+ * 
+ * @param lib   The library to be freed
+ */
 void free_lib(Netlist *lib);
 
 /**
- * Free the memory that was allocated for subsystem s and all its
- * members.
+ * @brief   Free the memory that was allocated for subsystem s and all its
+ *          members.
  * 
- * free_comp is a flag that indicates whether the individual components
- * of the subsystem should be freed.
-*/
+ * @details free_comp is a flag that indicates whether the individual components
+ *          of the subsystem should be freed.
+ * 
+ * @param s             The subsystem that will be freed
+ * @param free_comp     Whether or not the components of the subsystem should also
+ *                      be freed
+ */
 void free_subsystem(Subsystem *s, int free_comp);
 
 /**
- * Store a human readable string representation of the header (*)
- * information of the given subsystem in the given char*. Write
- * no more than n bytes, null terminator ('\0') included.
+ * @brief   Store a human readable string representation of the header (*)
+ *          information of the given subsystem in the given char*. Write
+ *          no more than n bytes, null terminator ('\0') included.
  * 
- * * name, input and output names
+ * @param s     The subsystem whose data will be written to the string
+ * @param str   The string to which the data will be written
+ * @param n     The maximum number of bytes that can be written into the string
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int subsys_hdr_to_str(Subsystem* s, char* str, int n);
 
 /**
- * Given a string of length n (if it is longer, only n bytes will be taken
- * into account) that declares a subsystem header (*), set s to describe
- * that subsystem too.
+ * @brief   Given a string of length n (if it is longer, only n bytes will be taken
+ *          into account) that declares a subsystem header (*), set s to describe
+ *          that subsystem too.
  * 
- * The string is assumed to be of the following format (no newlines):
- *  <COMP_DESGNATION><GENERAL_DELIM><name><GENERAL_DELIM><INPUT_DESIGNATION>
- *  <input list, separated by INOUT_DELIM><GENERAL_DELIM><OUTPUT_DESIGNATION>
- *  <output list, separated by INOUT_DELIM>
+ * @details The string is assumed to be of the following format (no newlines):
+ *              <COMP_DESGNATION><GENERAL_DELIM><name><GENERAL_DELIM><INPUT_DESIGNATION>
+ *              <input list, separated by INOUT_DELIM><GENERAL_DELIM><OUTPUT_DESIGNATION>
+ *              <output list, separated by INOUT_DELIM>
  * 
- * Does not allocate memory for the subsystem itself, but does for every input
- * and output (and also for the lists), so using this on an already initialized
- * subsystem might cause memory leaks, as pointers to the previously allocated
- * memory will be lost.
+ *          Does not allocate memory for the subsystem itself, but does for every input
+ *          and output (and also for the lists), so using this on an already initialized
+ *          subsystem might cause memory leaks, as pointers to the previously allocated
+ *          memory will be lost.
  * 
- * Does not set s->source.
+ *          Does not set s->source.
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
- * 
- * * name, input and output names
-*/
+ * @param str   The string that declares the subsystem header
+ * @param s     The subsystem to which the data will be parsed
+ * @param n     The maximum number of bytes that can be read from the string
+
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int str_to_subsys_hdr(char *str, Subsystem *s, int n);
 
 /**
- * Add the given component to the component list of the given subsystem.
-*/
+ * @brief   Add the given component to the component list of the given subsystem.
+ * 
+ * @param s     The subsystem to which the new component will be added
+ * @param c     The component that will be added to the subsystem
+ */
 int subsys_add_comp(Subsystem *s, Component *c);
 
 /**
- * Parse the contents of the given file into standards and store them in the given
- * library. All components used in the given file has to be defined in the given
- * lookup_library.
+ * @brief   Parse the contents of the given file into standards and store them in the given
+ *          library. All components used in the given file has to be defined in the given
+ *          lookup_library.
  * 
- * TODO: the lookup should be a list of libraries, possibly containing
- * the one currently being parsed
+ * @todo    The lookup should be a list of libraries, possibly containing the one currently being parsed
  * 
- * Does not allocate memory for the library, this has to be done by the caller.
- * The memory is assumed to be newly allocated, so if called on an already
- * initialized library, memory leaks are around the corner.
+ * @details Does not allocate memory for the library, this has to be done by the caller.
+ *          The memory is assumed to be newly allocated, so if called on an already
+ *          initialized library, memory leaks are around the corner.
  * 
- * Reads the file line by line, and ignores any line starting with "%%" or
- * "**".
+ *          Reads the file line by line, and ignores any line starting with "%%" or
+ *          "**".
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @param filename      The name of the file from which the library will be read
+ * @param lib           The library to which the data will be written
+ * @param lookup_lib    The library that will be searched for any referenced subsystem/gate
+ *
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int subsys_lib_from_file(char *filename, Netlist *lib, Netlist *lookup_lib);
 
 /**
- * Properly free up the memory allocated for component c and its
- * members.
+ * @brief   Properly free up the memory allocated for component c and its
+ *          members.
  * 
- * DOES NOT FREE the subsystem pointed to by c->standard.
-*/
+ * @details DOES NOT FREE the standard pointed to by c->prototype.
+ * 
+ * @param c     The component that will be freed
+ */
 void free_component(Component *c);
 
 /**
- * Store a human readable string representation of the given
- * component in the given char*. Write no more than n bytes,
- * null terminator ('\0') included.
+ * @brief   Store a human readable string representation of the given
+ *          component in the given char*. Write no more than n bytes,
+ *          null terminator ('\0') included.
  * 
- * Returns:
- *  - 0 on success
- *  - NES on failure because of not enough space
- *  - NARG on failure because of null arguments.
-*/
+ * @param c     The component whose components will be written to the string
+ * @param str   The string to which the data will be written
+ * @param n     The maximum number of bytes that can be written to the string
+ *
+ * @retval 0 on success
+ * @retval NES on failure because of not enough space
+ * @retval NARG on failure because of null arguments.
+ */
 int comp_to_str(Component *c, char *str, int n);
 
 /**
- * @brief   Store a human readable string representation of the given
- *          mapping in the given char*. Write no more than n bytes,
- *          null terminator ('\0') included.
+ * @brief Store a human readable string representation of the given
+ *        mapping in the given char*. Write no more than n bytes,
+ *        null terminator ('\0') included.
  * 
- *          If the mapping refers to a component that is a gate, then
- *          out_index should be set to -1 for this to work properly.
+ * @param m     The mapping whose data will be written to the string
+ * @param str   The string to which the data will be written
+ * @param n     The maximum number of bytes that can be written to the string
  */
 void mapping_to_str(Mapping *m, char *str, int n);
 
@@ -587,71 +653,78 @@ char* resolve_mapping(Mapping *m, Subsystem *s);
 int str_to_mapping(char *str, Subsystem *subsys, Mapping *m, int n);
 
 /**
- * Search (in a serial fashion) the given library for a standard
- * with the given name.
+ * @brief   Given a string of length n (if it is longer, only the first n
+ *          bytes will be taken into account), parse its contents into the
+ *          given component. Will look for a standard of the component in
+ *          the given lib.
  * 
- * Case sensitive.
  * 
- * Returns a pointer to the standard if found, NULL otherwise.
-*/
-Standard* search_in_lib(Netlist *lib, char *name);
-
-/**
- * Given a string of length n (if it is longer, only the first n
- * bytes will be taken into account), parse its contents into the
- * given component. Will look for a standard of the component in
- * the given lib.
+ * @details The subsystem s is the subsystem that contains the component
+ *          that is contained in str. This is needed so that in case the
+ *          subsystem is a standard one (see is_standard), the function is
+ *          able to determine whether the inputs are subsystem inputs or
+ *          other subsystem components. 
  * 
- * The subsystem s is the subsystem that contains the component
- * that is contained in str. This is needed so that in case the
- * subsystem is a standard one (see is_standard), the function is
- * able to determine whether the inputs are subsystem inputs or
- * other subsystem components. 
+ *          is_standard is a flag that indicated whether the component that
+ *          will be created is read from a library and should thus include
+ *          input mappings or not.
  * 
- * is_standard is a flag that indicated whether the component that
- * will be created is read from a library and should thus include
- * input mappings or not.
+ * @param str           The string that contains the component representation
+ * @param c             The component to which the data will be written
+ * @param n             The maximum number of bytes that can be read from the string
+ * @param lib           The library that may contain the prototype of the given component
+ * @param s             The subsystem that the component belongs to
+ * @param is_standard   Whether (1) or not (0) the component is part of a standard subsystem - and should thus have dynamic mappings
+ * @param buffer_index  The index that the new component should have in the simulation buffers
  * 
- * Returns:
- *  - 0 on success
- *  - NARG on failure because of null arguments
- *  - UNKNOWN_COMP on failure because of unseen component type
-*/
+ * @retval 0 on success
+ * @retval NARG on failure because of null arguments
+ * @retval UNKNOWN_COMP on failure because of unseen component type
+ */
 int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int is_standard, int *buffer_index);
 
 /**
- * Move x positions (forward) in the given list. Returns the node
- * that is there if the move is valid, NULL otherwise
-*/
+ * @brief   Move x positions (forward) in the given list. 
+ * 
+ * @param x     The number of steps that will be taken
+ * @param list  The list in which the movement will take place
+ * 
+ * @return Returns the node that is there if the move is valid, NULL otherwise
+ */
 Node *move_in_list(int x, LList* list);
 
 /**
- * Given a standard for a subsystem read from a library, create an instance
- * of it with the given inputs. The components in it and the outputs will be
- * mapped according to the standard.
+ * @brief   Given a standard for a subsystem, create an instance of it with the given inputs. The components
+ *          in it and the outputs will be mapped according to the standard.
  * 
- * Returns the comp_id number that the next component should have.
- * A negative value means some sort of error.
+ * @details    ns is assumed to be already allocated but nothing more. Must be freed by the caller.
  * 
- * ns is assumed to be already allocated but nothing more.
- * Must be freed by the caller.
-*/
+ * @param ns                The "new subsystem" - the one whose data will be created in a custom fashion
+ * @param std               The standard according to which the new subsystem will be created
+ * @param inputc            The number of input names provided
+ * @param inputs            The names of the inputs that the new subsystem shall have
+ * @param starting_index    The id that the first component of the new subsystem shall have (will be incremented from there on for the rest)
+ * 
+ * @return the comp_id number that the next component should have. A negative value means some sort of error.
+ */
 int create_custom(Subsystem *ns, Standard *std, int inputc, char **inputs, int starting_index);
 
 /**
- * Given a netlist (in the form of a library in order to avoid creating another
- * struct), parse the subsystems in it, and create a netlist for each one using
- * only gates (translate each subsystem all the way down to the gates it is defined
- * as in the library it is defined in).
+ * @brief   Given a netlist, parse the subsystems in it and create a netlist for each one using
+ *          only gates (translate each subsystem all the way down to the gates that it is defined
+ *          as in the library that it is defined in).
  * 
- * Stores the translated compponents in dest, which is assumed to be allocated.
+ * @details Stores the translated compponents in dest, which is assumed to be allocated.
  * 
- * Starts the component ID numbering from the given one.
+ *          Starts the component ID numbering from the given one.
  * 
- * Returns:
- *  - 0 on success
- *  - -1 on failure
-*/
+ * @param dest          The netlist whose subsystems will only have gates as their components
+ * @param netlist       The netlist whose subsystems will be translated to gates
+ * @param component_id  The starting value of the ID's of the components of the gates-only subsystem
+ *
+ * @retval 0 on success
+ * @retval -1 on failure
+ */
 int netlist_to_gate_only(Netlist *dest, Netlist *netlist, int component_id);
 
 /**
@@ -725,14 +798,9 @@ void lib_to_file(Netlist *lib, char *filename, char *mode);
  * @brief   Print a given library's contents in a file, but in the form that
  *          is more useful for debugging than for "normal" use. 
  * 
- *          That basically means that the any mappings (either as outputs of
+ * @details That basically means that the any mappings (either as outputs of
  *          a subsystem of as inputs of its components) will not be resolved,
  *          but printed as mappings.
- * 
- *          For example, if a subsystem output is mapped to the 3'rd output of
- *          the 4'th component, we would expect something like 'U4_OUT3' to be
- *          printed along that output.
- *          This function will instead print 'component 4's output 3'.
  * 
  *          This allows us to identify (and thus solve) problems that may arise
  *          from mapping misconfigurations easily, and also gives the potential
@@ -740,6 +808,11 @@ void lib_to_file(Netlist *lib, char *filename, char *mode);
  * 
  *          Note that gates have nothing to do with dynamic mappings so they are
  *          treated the same here as in lib_to_file().
+ * 
+ * @example For example, if a subsystem output is mapped to the 3'rd output of
+ *          the 4'th component, we would expect something like 'U4_OUT3' to be
+ *          printed along that output. This function will instead print 
+ *          'component 4's output 3'.
  * 
  * @param lib       The library whose contents will be printed
  * @param filename  The filename that the output will be written to
@@ -749,14 +822,21 @@ void lib_to_file(Netlist *lib, char *filename, char *mode);
 void lib_to_file_debug(Netlist *lib, char *filename, char *mode);
 
 /**
- * Given a standard subsystem, create an instance of it with the given inputs/outputs.
+ * @brief   Given a standard subsystem, create an instance of it with the given inputs/outputs.
  * 
- * Creates all components that std says, maps each component's inputs to whatever std says,
- * maps all subsystem outputs to whatever std says.
+ * @details Creates all components that std says, maps each component's inputs to whatever std says,
+ *          maps all subsystem outputs to whatever std says.
  * 
- * This function is completely subsystem agnostic, meaning that (assuming a proper standard)
- * virtually ANY subsystem can be instantiated with it.
-*/
+ *          This function is completely subsystem agnostic, meaning that (assuming a proper standard)
+ *          virtually ANY subsystem can be instantiated with it.
+ * 
+ * @param std           The standard according to which the instance will be created
+ * @param inputs        The names of the inputs that the instance shall have
+ * @param inputc        The number of elements in the input names list
+ * @param outputs       The names of the outputs that the instance shall have
+ * @param outputc       The number of elements in the output name list
+ * @return (a pointer to) the newly instantiated subsystem
+ */
 Subsystem *instantiate_subsys(Subsystem *std, char **inputs, int inputc, char **outputs, int outputc);
 
 /**

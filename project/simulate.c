@@ -1,3 +1,18 @@
+/**
+ * @file    simulate.c
+ * 
+ * @author  Petros Bimpiris (pbimpiris@tuc.gr)
+ * 
+ * @brief   A tool to simulate the behavior of a circuit using testbenches.
+ * 
+ * @version 1.0
+ * 
+ * @date 11-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

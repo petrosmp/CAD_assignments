@@ -1,3 +1,18 @@
+/**
+ * @file    str_util.c
+ * 
+ * @author  Petros Bimpiris (pbimpiris@tuc.gr)
+ * 
+ * @brief   Implementations of the functions declared in the netlist.h header file.
+ * 
+ * @version 0.1
+ * 
+ * @date 11-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
