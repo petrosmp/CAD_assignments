@@ -22,7 +22,7 @@
 #include <time.h>
 
 #define GATE_LIB_NAME       "component.lib"
-#define INPUT_FILE          "full_adder_5.txt"
+#define INPUT_FILE          "subsystem.lib"
 #define OUTPUT_FILE         "testbench_out.txt"
 #define SUBSYSTEM_NAME      "FULL_ADDER5"
 #define TESTBENCH_FILE      "testbench.txt"
