@@ -9,7 +9,11 @@ netlist: netlist.h netlist.c libstr.so
 simulate: simulate.c
 	gcc -Wall -L. -Wl,-rpath=. $< -o $@ -lstr -lnetlist -g
 
+doc: Doxyfile
+	doxygen Doxyfile
+
 clean:
 	rm -f libstr.so
 	rm -f libnetlist.so
 	rm -f simulate
+	rm -rf doc/
