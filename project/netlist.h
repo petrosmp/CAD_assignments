@@ -37,7 +37,11 @@
 #define REQUIREMENT_DECL "LIB"      /* The string that indicates that a required subsystem is specified in this line */
 #define MAP_COMP_OUT_SEP "_"        /* The string that separates the component ID from the output name in a mapping */
 #define GENERIC_ERROR -7            /* Error code indicating an error that does not fall under a specific category. An error message will usually be printed to clarify. */
-
+#define SIM_INPUT_DELIM     ", "    /* The string separating the inputs in the format that simulate() accepts */
+#define TESTBENCH_IN        "IN"    /* The string that indicates that the following lines in a testbench file contain input values */
+#define TESTBENCH_OUT       "OUT"   /* The string that indicates that the following lines in a testbench file contain names of outputs whose values should be printed */
+#define TB_GENERAL_DELIM    " "     /* A general delimiter for testbench files */
+#define TB_IN_VAL_DELIM     ", "    /* The string that separates the input values of one test from the next in a testbench file */
 
 /**
  * Since a single node structure is used for all linked list needs of the
@@ -844,6 +848,59 @@ int eval_at(int tt, char *inputs);
  */
 void print_as_truth_table(int tt, int inputs);
 
+/**
+ * @brief   Simulate the behavior of the given subsystem (assumed to only be made of gates) with the
+ *          given set of inputs. Write the results to the given file pointer.
+ * 
+ * @details The display_outs array is an array of boolean values indicating which output values should
+ *          be printed to the output. The number of values in that array should therefore be equal to
+ *          (or greater than, excess values will be ignored) the number of outputs of s.
+ * 
+ * @note    The inputs are passed with the following format: a string of comma-delimited bits, as many
+ *          as the inputs of s, each corresponding to the value of the input with its index.
+ * 
+ * @example If s has 3 inputs: {A, B, C} and 2 outputs {D, E} and we want to simulate {A=1, B=1, C=0}
+ *          and see the value of D, with the results printed in standard output we would call
+ *          simulate as follows:
+ *              simulate(s, "1, 1, 0", [1, 0], stdout)
+ * 
+ * 
+ * @param s             The subsystem whose behavior will be simulated
+ * @param inputs        The input values
+ * @param display_outs  An array indicating which outputs will be printed
+ * @param fp            The stream where the output shall be printed
+ * @return 0 on success, nonzero on error
+ */
+int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp);
+
+/**
+ * @brief   Parse the information that describes a testbench from the given file into the
+ *          given structure.
+ * 
+ * @note    This does not allocate memory for the testbench struct itself, and it requires
+ *          that the uut has already been set. If not, an error value will be returned.
+ *          
+ *          It does however allocate memory for the values array, which will need to be
+ *          properly freed.
+ *  
+ * 
+ * @param tb        The structure where the data will be saved
+ * @param filename  The file that will be parsed
+ * @param mode      The mode with which fopen() will be called
+ * @return 0 on success, 1 on failure.
+ */
+int parse_tb_from_file(Testbench *tb, char *filename, char *mode);
+
+/**
+ * @brief   Execute the given testbench and write the output to a file with the given name (that
+ *          will be (f)opened with the given mode).
+ * 
+ * @param tb            The testbench to be run
+ * @param output_file   The file where the output will be written
+ * @param mode          The mode that will be passed to fopen()
+ * @return 0 on succes, nonzero on error
+ */
+int execute_tb(Testbench *tb, char *output_file, char *mode);
 
 
 
