@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include "str_util.h"
 #include "netlist.h"
+#include <time.h>
 
 #define INPUTS 10
 #define GATE_LIB_NAME       "component.lib"
@@ -17,7 +18,6 @@
 #define TESTBENCH_OUT       "OUT"
 #define TB_GENERAL_DELIM    " "
 #define TB_IN_VAL_DELIM     ", "
-
 
 void usage();
 int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp);
@@ -74,36 +74,21 @@ int main(int argc, char *argv[]) {
     char *inputs = malloc(strlen(inpts)+1);
     strncpy(inputs, inpts, strlen(inpts)+1);
 
-    int a[] = {1, 1, 1, 1, 1, 1};
-
-    if ( simulate(s, inputs, a, NULL) ) {
-        printf("There was an error, the program terminated abruptly!\n");
-        return -1;
-    }
-
     free(inputs);
 
     Testbench *tb = malloc(sizeof(Testbench));
     tb->uut = s;
 
+    clock_t start = clock();  // measure the total time - include the parsing of the file
+
     parse_tb_from_file(tb, "testbench.txt", "r");
-
-    for (int i=0; i<tb->uut->_inputc; i++) {
-        fprintf(stderr, "values for %s: [ ", tb->uut->inputs[i]);
-    
-        for (int j=0; j<tb->v_c; j++) {
-            fprintf(stderr, "%s, ", tb->values[i][j]);
-        }
-
-        fprintf(stderr, " ]\n");
-    }
-
-    for(int i=0; i<tb->uut->_outputc; i++) {
-        fprintf(stderr, "output %s will be displayed: [%d]\n", tb->uut->outputs[i], tb->outs_display[i]);
-    }
 
     execute_tb(tb, "tb_out.txt", "w");
 
+    clock_t end = clock();
+
+    double time_taken = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("Total testbench execution time (including parsing): %.3f msec\n", time_taken*1000);
 
     // cleanup
     free_tb(tb);
@@ -117,6 +102,8 @@ int main(int argc, char *argv[]) {
 
 int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
 
+
+    clock_t _start = clock();    // measure time of execution - initial timestamp
 
     if (s == NULL || inputs==NULL) {
         return NARG;
@@ -173,6 +160,8 @@ int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
     int dirty = 1;
 
     int iterations = 0;
+
+    clock_t start = clock();    // measure time of execution - initial timestamp
 
     while(dirty) {
 
@@ -292,6 +281,10 @@ int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
 
     }
 
+    clock_t end = clock();  // final timestamp
+
+    double actual_time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    double total_time = ((double) (end - _start)) / CLOCKS_PER_SEC;
 
     // print the results
     for(int i=0; i<s->_inputc; i++) {
@@ -307,7 +300,7 @@ int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
         }
     }
 
-    fprintf(fp!=NULL?fp:stderr, "\t [%d iterations]\n", iterations);
+    fprintf(fp!=NULL?fp:stderr, "\t [%d iterations, %.3f msec of iterating, %.3f msec in total]\n", iterations, actual_time*1000, total_time*1000);
 
     // cleanup
     free(int_inputs);
@@ -352,7 +345,6 @@ int parse_tb_from_file(Testbench *tb, char *filename, char *mode) {
     int nread = 0;
     int offset = 0;
     size_t len = 0;
-    int _en;
 
     // initialize the values field of the testbench struct
     tb->values = malloc(sizeof(char**) * tb->uut->_inputc);
@@ -496,8 +488,6 @@ int execute_tb(Testbench *tb, char *output_file, char *mode) {
 
         // hack to remove the last comma
         inputs[tb->uut->_inputc*3-2] = '\0';
-
-        fprintf(stderr, "inputs is [%s]\n", inputs);
 
         // call simulate
         simulate(tb->uut, inputs, tb->outs_display, fp);
