@@ -1,0 +1,7 @@
+A07  A06  A05  A04  A03  A02  A01  A00  B07  B06  B05  B04  B03  B02  B01  B00  CIN  |    S7   S6   S5   S4   S3   S2   S1   S0   COUT 
+1    1    1    1    1    1    1    1    0    0    0    0    0    0    0    0    1    |    0    0    0    0    0    0    0    0    1    	 [21 iterations, 0.193 msec of iterating, 0.202 msec in total]
+0    0    0    0    0    0    0    0    1    1    1    1    1    1    1    1    1    |    0    0    0    0    0    0    0    0    1    	 [21 iterations, 0.125 msec of iterating, 0.127 msec in total]
+0    1    0    1    0    1    0    1    0    1    0    1    0    1    0    1    0    |    1    0    1    0    1    0    1    0    0    	 [6 iterations, 0.040 msec of iterating, 0.042 msec in total]
+1    0    1    0    1    0    1    0    1    0    1    0    1    0    1    0    0    |    0    1    0    1    0    1    0    0    1    	 [6 iterations, 0.039 msec of iterating, 0.041 msec in total]
+1    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1    |    1    1    1    1    1    1    1    1    1    	 [6 iterations, 0.037 msec of iterating, 0.038 msec in total]
+0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    |    0    0    0    0    0    0    0    0    0    	 [6 iterations, 0.036 msec of iterating, 0.038 msec in total]
