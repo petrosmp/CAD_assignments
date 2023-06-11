@@ -18,41 +18,41 @@
 #include "str_util.h"
 #include <stdio.h>
 
-#define DECL_DESIGNATION "COMP "    /**< The word that signifies that a line declares a subsystem */
-#define INPUT_DESIGNATION "IN: "    /**< The word that signifies that the next part of a string is the inputs of the subsystem. */
-#define OUTPUT_DESIGNATION "OUT: "  /**< The word that signifies that the next part of a string is the outputs of the subsystem. */
-#define IN_OUT_DELIM ", "           /**< The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
-#define GENERAL_DELIM " ; "         /**< The delimiter that separates fields. */
-#define COMP_ID_PREFIX "U"          /**< The prefix of every component id. When printing component c, COMP_ID_PREFIX<c.id> will be printed */
-#define COMP_DELIM  " "             /**< The delimiter separating the attributes of a component */
-#define MAX_LINE_LEN 512            /**< The maximum allowed length of a line in a netlist file */
-#define COMMENT_PREFIX "%%"         /**< The prefix of any comment line */
-#define KEYWORD_PREFIX "**"         /**< The prefix of any keyword line */
-#define NETLIST_START "BEGIN "      /**< The word that signifies that a netlist is contained in the following lines */
-#define NETLIST_END "END "          /**< The word that signifies that a netlist ends in this line */
-#define UNEXPECTED_EOF -2           /**< Error code returned when a file ends unexpectedly, leaving a netlist incomplete */
-#define SYNTAX_ERROR -3             /**< Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
-#define UNKNOWN_COMP -4             /**< Error code returned when a netlist contains a component that we have not seen in any library */
-#define MAP_DELIM " = "             /**< The delimiter between a mapping's name and its "target" in a netlist */
-#define ENTITY_START "ENTITY"       /**< The string that indicates that an entity declaration starts in this line */
-#define ENTITY_END "END"            /**< The string that indicates that an entity declaration ends in this line */
-#define VAR_DECLARATION "VAR"       /**< The string that indicates that a line contains a variable declaration */
-#define VAR_ASSIGNMENT "= "         /**< The string that lies between a variables name and its value */
-#define PORT_START "PORT ("         /**< The string that indicates that a port map begins in this line */
-#define PORT_END ");"               /**< The string that indicates that a port map begins in this line */
-#define PORT_MAP_INPUT "IN"         /**< The string that indicates that a port map line contains an input signal */
-#define PORT_MAP_OUTPUT "OUT"       /**< The string that indicates that a port map line contains an output signal */
-#define PORT_MAP_DELIM " "          /**< The delimiter that separates fields in a port map line */
-#define PORT_MAP_SIGNAL_DELIM " , " /**< The delimiter that separates (input/output) signals in a port map */
-#define PORT_MAP_COLON ": "         /**< The delimiter between the input/output declarations and the signal names */
-#define REQUIREMENT_DECL "LIB"      /**< The string that indicates that a required subsystem is specified in this line */
-#define MAP_COMP_OUT_SEP "_"        /**< The string that separates the component ID from the output name in a mapping */
-#define GENERIC_ERROR -7            /**< Error code indicating an error that does not fall under a specific category. An error message will usually be printed to clarify. */
-#define SIM_INPUT_DELIM     ", "    /**< The string separating the inputs in the format that simulate() accepts */
-#define TESTBENCH_IN        "IN"    /**< The string that indicates that the following lines in a testbench file contain input values */
-#define TESTBENCH_OUT       "OUT"   /**< The string that indicates that the following lines in a testbench file contain names of outputs whose values should be printed */
-#define TB_GENERAL_DELIM    " "     /**< A general delimiter for testbench files */
-#define TB_IN_VAL_DELIM     ", "    /**< The string that separates the input values of one test from the next in a testbench file */
+#define DECL_DESIGNATION "COMP "    /**< @brief The word that signifies that a line declares a subsystem */
+#define INPUT_DESIGNATION "IN: "    /**< @brief The word that signifies that the next part of a string is the inputs of the subsystem. */
+#define OUTPUT_DESIGNATION "OUT: "  /**< @brief The word that signifies that the next part of a string is the outputs of the subsystem. */
+#define IN_OUT_DELIM ", "           /**< @brief The delimeter that separates inputs/outputs from each other. i.e. for outputs A, B and C and INOUT_DELIM "," the output list will be: A,B,C */
+#define GENERAL_DELIM " ; "         /**< @brief The delimiter that separates fields. */
+#define COMP_ID_PREFIX "U"          /**< @brief The prefix of every component id. When printing component c, COMP_ID_PREFIX<c.id> will be printed */
+#define COMP_DELIM  " "             /**< @brief The delimiter separating the attributes of a component */
+#define MAX_LINE_LEN 512            /**< @brief The maximum allowed length of a line in a netlist file */
+#define COMMENT_PREFIX "%%"         /**< @brief The prefix of any comment line */
+#define KEYWORD_PREFIX "**"         /**< @brief The prefix of any keyword line */
+#define NETLIST_START "BEGIN "      /**< @brief The word that signifies that a netlist is contained in the following lines */
+#define NETLIST_END "END "          /**< @brief The word that signifies that a netlist ends in this line */
+#define UNEXPECTED_EOF -2           /**< @brief Error code returned when a file ends unexpectedly, leaving a netlist incomplete */
+#define SYNTAX_ERROR -3             /**< @brief Error code returned when a syntax error (of any kind) is detected while parsing a netlist */
+#define UNKNOWN_COMP -4             /**< @brief Error code returned when a netlist contains a component that we have not seen in any library */
+#define MAP_DELIM " = "             /**< @brief The delimiter between a mapping's name and its "target" in a netlist */
+#define ENTITY_START "ENTITY"       /**< @brief The string that indicates that an entity declaration starts in this line */
+#define ENTITY_END "END"            /**< @brief The string that indicates that an entity declaration ends in this line */
+#define VAR_DECLARATION "VAR"       /**< @brief The string that indicates that a line contains a variable declaration */
+#define VAR_ASSIGNMENT "= "         /**< @brief The string that lies between a variables name and its value */
+#define PORT_START "PORT ("         /**< @brief The string that indicates that a port map begins in this line */
+#define PORT_END ");"               /**< @brief The string that indicates that a port map begins in this line */
+#define PORT_MAP_INPUT "IN"         /**< @brief The string that indicates that a port map line contains an input signal */
+#define PORT_MAP_OUTPUT "OUT"       /**< @brief The string that indicates that a port map line contains an output signal */
+#define PORT_MAP_DELIM " "          /**< @brief The delimiter that separates fields in a port map line */
+#define PORT_MAP_SIGNAL_DELIM " , " /**< @brief The delimiter that separates (input/output) signals in a port map */
+#define PORT_MAP_COLON ": "         /**< @brief The delimiter between the input/output declarations and the signal names */
+#define REQUIREMENT_DECL "LIB"      /**< @brief The string that indicates that a required subsystem is specified in this line */
+#define MAP_COMP_OUT_SEP "_"        /**< @brief The string that separates the component ID from the output name in a mapping */
+#define GENERIC_ERROR -7            /**< @brief Error code indicating an error that does not fall under a specific category. An error message will usually be printed to clarify. */
+#define SIM_INPUT_DELIM     ", "    /**< @brief The string separating the inputs in the format that simulate() accepts */
+#define TESTBENCH_IN        "IN"    /**< @brief The string that indicates that the following lines in a testbench file contain input values */
+#define TESTBENCH_OUT       "OUT"   /**< @brief The string that indicates that the following lines in a testbench file contain names of outputs whose values should be printed */
+#define TB_GENERAL_DELIM    " "     /**< @brief A general delimiter for testbench files */
+#define TB_IN_VAL_DELIM     ", "    /**< @brief The string that separates the input values of one test from the next in a testbench file */
 
 /**
  * Since a single node structure is used for all linked list needs of the
@@ -62,10 +62,10 @@
  * the new node type if you add a new node type.
 */
 enum NODE_TYPE {
-    STANDARD,       /**< The node contains a standard subsystem (as read from a library) */
-    SUBSYSTEM_N,    /**< The node contains a functional subsystem (as described in a netlist) */
-    COMPONENT,      /**< The node contains a component (any part of a subsystem) */
-    ALIAS           /**< The node contains an alias of a signal */
+    STANDARD,       /**< @brief The node contains a standard subsystem (as read from a library) */
+    SUBSYSTEM_N,    /**< @brief The node contains a functional subsystem (as described in a netlist) */
+    COMPONENT,      /**< @brief The node contains a component (any part of a subsystem) */
+    ALIAS           /**< @brief The node contains an alias of a signal */
 };
 
 /**
@@ -79,8 +79,8 @@ enum NODE_TYPE {
  * search_in_llist to find the 'name' of the new standard type.
 */
 enum STANDARD_TYPE {
-    GATE,       /**< The standard describes a gate */
-    SUBSYSTEM   /**< The standard describes a subsystem */
+    GATE,       /**< @brief The standard describes a gate */
+    SUBSYSTEM   /**< @brief The standard describes a subsystem */
 };
 
 /**
@@ -89,12 +89,12 @@ enum STANDARD_TYPE {
  * but ultimately a gate).
 */
 enum MAPPING_TYPE {
-    SUBSYS_INPUT,   /**< The input/output is coming from the subsystem's input  list */
-    SUBSYS_COMP     /**< The input/output is another component (gate) in the subsystem */
+    SUBSYS_INPUT,   /**< @brief The input/output is coming from the subsystem's input  list */
+    SUBSYS_COMP     /**< @brief The input/output is another component (gate) in the subsystem */
 };
 
 /**
- * @brief   A dynamic way of referring to inputs and components of a subsystem.
+ * @brief A dynamic way of referring to inputs and components of a subsystem.
  * 
  * @details A component contained in a standard subsystem has a dynamic way of
  *          mapping its inputs/outputs to the subsystem, so that with any given
@@ -108,9 +108,9 @@ enum MAPPING_TYPE {
  *          The same is true for any output mapping of s.
  */
 typedef struct mapping {
-    enum MAPPING_TYPE type; /**< The type of the mapping */
-    int index;              /**< The index (either of the subsystems input or of the component) */
-    int out_index;          /**< The index of the output in case this refers to a component */
+    enum MAPPING_TYPE type; /**< @brief The type of the mapping */
+    int index;              /**< @brief The index (either of the subsystems input or of the component) */
+    int out_index;          /**< @brief The index of the output in case this refers to a component */
 } Mapping;
 
 /**
@@ -120,14 +120,14 @@ typedef struct mapping {
  *          type, to make distinguishing between nodes with different data easier.
  */
 typedef struct node {
-    enum NODE_TYPE type;            /**< The type of data the node contains */
+    enum NODE_TYPE type;            /**< @brief The type of data the node contains */
     union {
-        struct standard *std;       /**< The standard the node contains */
-        struct subsystem *subsys;   /**< The subsystem the node contains */
-        struct component *comp;     /**< The component the node contains */
-        struct alias *alias;        /**< The alias the node contains */
+        struct standard *std;       /**< @brief The standard the node contains */
+        struct subsystem *subsys;   /**< @brief The subsystem the node contains */
+        struct component *comp;     /**< @brief The component the node contains */
+        struct alias *alias;        /**< @brief The alias the node contains */
     };
-    struct node *next;              /**< The next node in the list */
+    struct node *next;              /**< @brief The next node in the list */
 } Node;
 
 /**
@@ -139,9 +139,9 @@ typedef struct node {
  *          the name of the file in which they were defined.
  */
 typedef struct netlist {
-    enum STANDARD_TYPE type;        /**< The possible types are the same  */
-    struct linked_list *contents;   /**< The contents of the library */
-    char *file;                     /**< The file the library was defined in */
+    enum STANDARD_TYPE type;        /**< @brief The possible types are the same  */
+    struct linked_list *contents;   /**< @brief The contents of the library */
+    char *file;                     /**< @brief The file the library was defined in */
 } Netlist;
 
 /**
@@ -156,10 +156,10 @@ typedef struct netlist {
  *          have that many inputs?
  */
 typedef struct gate {
-    char* name;                     /**< The name of this gate (ASCII, human readable). */
-    int _inputc;                    /**< The number of inputs the gate has (mainly for internal use). */
-    char** inputs;                  /**< The names of the inputs of the gate. */
-    int truth_table;                /**< The truth table of the gate, represented as a bitstring (integer) */
+    char* name;                     /**< @brief The name of this gate (ASCII, human readable). */
+    int _inputc;                    /**< @brief The number of inputs the gate has (mainly for internal use). */
+    char** inputs;                  /**< @brief The names of the inputs of the gate. */
+    int truth_table;                /**< @brief The truth table of the gate, represented as a bitstring (integer) */
 } Gate;
 
 /**
@@ -173,20 +173,20 @@ typedef struct gate {
  *          subsystems can contain an arbitrarily high (or low) number of components.
  */
 typedef struct subsystem {
-    char* name;                     /**< The name of this subsystem (ASCII, human readable). */
-    int _inputc;                    /**< The number of inputs the subsystem has (mainly for internal use). */
-    char** inputs;                  /**< The names of the inputs of the subsystem. */
-    int _outputc;                   /**< The number of outputs the subsystem has (mainly for internal use). */
-    char** outputs;                 /**< The names of the outputs of the subsystem. */
-    struct linked_list *components; /**< The list of the subsystem components */
-    char **output_mappings;         /**< The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
-    int is_standard;                /**< Boolean flag indicating whether the subsystem is a standard one */
-    Mapping **o_maps;               /**< If the subsystem is a standard one, along the outputs there will be output mappings */
-    struct linked_list *aliases;    /**< The signal aliases that the netlist in which the subsystem was defined used. Useful only during parsing. */
+    char* name;                     /**< @brief The name of this subsystem (ASCII, human readable). */
+    int _inputc;                    /**< @brief The number of inputs the subsystem has (mainly for internal use). */
+    char** inputs;                  /**< @brief The names of the inputs of the subsystem. */
+    int _outputc;                   /**< @brief The number of outputs the subsystem has (mainly for internal use). */
+    char** outputs;                 /**< @brief The names of the outputs of the subsystem. */
+    struct linked_list *components; /**< @brief The list of the subsystem components */
+    char **output_mappings;         /**< @brief The list of the mappings of internal signals to the subsystem's outputs (if it is a functional one) */
+    int is_standard;                /**< @brief Boolean flag indicating whether the subsystem is a standard one */
+    Mapping **o_maps;               /**< @brief If the subsystem is a standard one, along the outputs there will be output mappings */
+    struct linked_list *aliases;    /**< @brief The signal aliases that the netlist in which the subsystem was defined used. Useful only during parsing. */
 } Subsystem;
 
 /**
- * @brief   A subsystem or gate read from a library file and used as a property of components
+ * @brief A subsystem or gate read from a library file and used as a property of components
  *          to indicate their type and basic properties.
  * 
  * @example If "c" is a component we know nothing about, we can find information regarding
@@ -194,17 +194,17 @@ typedef struct subsystem {
  */
 typedef struct standard {
 
-    enum STANDARD_TYPE type;    /**< The type of circuit this standard defines (gate or subsystem) */
+    enum STANDARD_TYPE type;    /**< @brief The type of circuit this standard defines (gate or subsystem) */
     union {
-        Subsystem* subsys;      /**< The subsystem this standard defines */
-        Gate* gate;             /**< The gate this standard defines */
+        Subsystem* subsys;      /**< @brief The subsystem this standard defines */
+        Gate* gate;             /**< @brief The gate this standard defines */
     };
-    Netlist *defined_in;        /**< The library in which this standard is defined */
+    Netlist *defined_in;        /**< @brief The library in which this standard is defined */
 
 } Standard;
 
 /**
- * @brief   An instance of a subsystem/gate as part of a circuit.
+ * @brief An instance of a subsystem/gate as part of a circuit.
  * 
  * @details Components defined inside standard subsystems (read from libraries)
  *          will also have a series of input mappings to represent the way that
@@ -224,21 +224,21 @@ typedef struct standard {
  * END FULL_ADDER2 NETLIST
 */
 typedef struct component {
-    int id;                 /**< The unique ID of the component */
-    Standard *prototype;    /**< The subsystem/gate that the component is an instance of */
-    int is_standard;        /**< Boolean flag indicating whether the component is contained in a standard subsystem */
-    int _inputc;            /**< The number of inputs (more precisely, input mappings) the component has */
-    char **inputs;          /**< The names of the input signals of the component */
-    Mapping **i_maps;       /**< If the component is part of a standard subsystem, along the inputs there will be input mappings */
-    int buffer_index;       /**< The index of the component in the simulation buffers */
+    int id;                 /**< @brief The unique ID of the component */
+    Standard *prototype;    /**< @brief The subsystem/gate that the component is an instance of */
+    int is_standard;        /**< @brief Boolean flag indicating whether the component is contained in a standard subsystem */
+    int _inputc;            /**< @brief The number of inputs (more precisely, input mappings) the component has */
+    char **inputs;          /**< @brief The names of the input signals of the component */
+    Mapping **i_maps;       /**< @brief If the component is part of a standard subsystem, along the inputs there will be input mappings */
+    int buffer_index;       /**< @brief The index of the component in the simulation buffers */
 } Component;
 
 /**
  * @brief   A singly linked list, containing pointers to its first and last nodes.
  */
 typedef struct linked_list {
-    Node *head;     /**< The first element of the list */
-    Node *tail;     /**< The last element in the list */
+    Node *head;     /**< @brief The first element of the list */
+    Node *tail;     /**< @brief The last element in the list */
 } LList;
 
 /**
@@ -282,8 +282,8 @@ typedef struct linked_list {
  * 
 */
 typedef struct alias {
-    char *name;         /**< The name of the alias (how it will be referred to in a netlist) */
-    Mapping *mapping;   /**< A mapping to the thing that this is an alias of */
+    char *name;         /**< @brief The name of the alias (how it will be referred to in a netlist) */
+    Mapping *mapping;   /**< @brief A mapping to the thing that this is an alias of */
 } Alias;
 
 /**
@@ -291,10 +291,10 @@ typedef struct alias {
  *          the values that will be tested as inputs and the outputs that will be displayed.
  */
 typedef struct testbench {
-    Subsystem *uut;     /**< The Unit Under Test, the subsystem whose function will be simulated */
-    char ***values;     /**< The list of values that will be tried for each input */
-    int v_c;            /**< The number of values (and thus simulations) that this testbench provides */
-    int *outs_display;  /**< A list of booleans indicating whether or not each output should be displayed (all 0 by default) */
+    Subsystem *uut;     /**< @brief The Unit Under Test, the subsystem whose function will be simulated */
+    char ***values;     /**< @brief The list of values that will be tried for each input */
+    int v_c;            /**< @brief The number of values (and thus simulations) that this testbench provides */
+    int *outs_display;  /**< @brief A list of booleans indicating whether or not each output should be displayed (all 0 by default) */
 } Testbench;
 
 /**
