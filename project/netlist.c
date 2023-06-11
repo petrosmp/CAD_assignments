@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <math.h>
 #include <time.h>
 #include "netlist.h"
 #include "str_util.h"
@@ -1762,16 +1761,16 @@ int eval_at(int tt, char *inputs) {
         index += (inputs[i]-'0');
     }
 
-    int filter = one_at_index(pow(2, n), index);
+    int filter = one_at_index(2<<(n-1), index);
 
     int res = tt & filter;
 
-    return res>>((int)pow(2, n)-1-index);
+    return res>>((int)(2<<(n-1))-1-index);
 }
 
 void print_as_truth_table(int tt, int inputs) {
 
-    int max_n = pow(2, inputs);
+    int max_n = 2<<(inputs-1);
 
     for(int i=0; i<inputs; i++) {
         fprintf(stderr, "%c | ", 'A'+i);
