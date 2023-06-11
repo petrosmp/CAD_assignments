@@ -116,5 +116,5 @@ void usage() {
     printf("\t-i <filename>:\tuse the file with the given name as the input netlist (default %s)\n", INPUT_FILE);
     printf("\t-o <filename>:\twrite the output to a file with the given name (will be overwritten if it already exists) (default %s)\n", OUTPUT_FILE);
     printf("\t-t <filename>:\tuse the file with the given name as the testbench file (default %s)\n", TESTBENCH_FILE);
-    printf("\t-s <name>:\t\tfind and simulate the subsystem with the given name (must be contained in the specified netlist) (default %s)\n", SUBSYSTEM_NAME);
+    printf("\t-s <name>:\tfind and simulate the subsystem with the given name (must be contained in the specified netlist) (default %s)\n", SUBSYSTEM_NAME);
 }
