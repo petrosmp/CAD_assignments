@@ -20,8 +20,9 @@
 
 
 void usage();
-int simulate(Subsystem* s, char *inputs);
+int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp);
 int parse_tb_from_file(Testbench *tb, char *filename, char *mode);
+int execute_tb(Testbench *tb, char *output_file, char *mode);
 
 int main(int argc, char *argv[]) {
 
@@ -73,7 +74,9 @@ int main(int argc, char *argv[]) {
     char *inputs = malloc(strlen(inpts)+1);
     strncpy(inputs, inpts, strlen(inpts)+1);
 
-    if ( simulate(s, inputs) ) {
+    int a[] = {1, 1, 1, 1, 1, 1};
+
+    if ( simulate(s, inputs, a, NULL) ) {
         printf("There was an error, the program terminated abruptly!\n");
         return -1;
     }
@@ -99,6 +102,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "output %s will be displayed: [%d]\n", tb->uut->outputs[i], tb->outs_display[i]);
     }
 
+    execute_tb(tb, "tb_out.txt", "w");
+
 
     // cleanup
     free_tb(tb);
@@ -110,7 +115,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-int simulate(Subsystem* s, char *inputs) {
+int simulate(Subsystem* s, char *inputs, int *display_outs, FILE* fp) {
 
 
     if (s == NULL || inputs==NULL) {
@@ -287,12 +292,22 @@ int simulate(Subsystem* s, char *inputs) {
 
     }
 
-    fprintf(stderr, "Simulation over after %d iterations. outputs shown below:\n", iterations);
 
-    for(int i=0; i<s->_outputc; i++) {
-        fprintf(stderr, "%s = %d\n", s->outputs[i], old[max_component_index+1+i]);
+    // print the results
+    for(int i=0; i<s->_inputc; i++) {
+        fprintf(fp!=NULL?fp:stderr, "%-5d", int_inputs[i]);
     }
 
+    // print the delimeter
+    fprintf(fp!=NULL?fp:stderr, "%-5c", '|');
+
+    for(int i=0; i<s->_outputc; i++) {
+        if (display_outs[i]) {
+            fprintf(fp!=NULL?fp:stderr, "%-5d", old[max_component_index+1+i]);
+        }
+    }
+
+    fprintf(fp!=NULL?fp:stderr, "\t [%d iterations]\n", iterations);
 
     // cleanup
     free(int_inputs);
@@ -418,8 +433,79 @@ int parse_tb_from_file(Testbench *tb, char *filename, char *mode) {
         }
     }
 
-
     free(line);
+    fclose(fp);
+
+    return 0;
+}
+
+/**
+ * @brief   Execute the given testbench and write the output to a file with the given name (that
+ *          will be (f)opened with the given mode).
+ * 
+ * @param tb            The testbench to be run
+ * @param output_file   The file where the output will be written
+ * @param mode          The mode that will be passed to fopen()
+ * @return 
+ */
+int execute_tb(Testbench *tb, char *output_file, char *mode) {
+
+    if (tb == NULL || output_file == NULL || mode == NULL) {
+        return NARG;
+    }
+
+    // open the file
+    FILE *fp = fopen(output_file, mode);
+    if (fp == NULL) {
+        fprintf(stderr, "execute_tb() encountered an error opening the file\n");
+        return GENERIC_ERROR;
+    }
+
+    // print the header
+
+    // print the inputs
+    for (int i=0; i<tb->uut->_inputc; i++) {
+        fprintf(fp, "%-5s", tb->uut->inputs[i]);
+    }
+
+    // print the delimeter
+    fprintf(fp, "%-5c", '|');
+
+    // print the outputs
+    for(int i=0; i<tb->uut->_outputc; i++) {
+        if (tb->outs_display[i]) {
+            fprintf(fp, "%-5s", tb->uut->outputs[i]);
+        }
+    }
+
+    // print a newline
+    fprintf(fp, "\n");
+
+
+
+    // iterate over the tests
+    for (int test_no=0; test_no<tb->v_c; test_no++) {
+
+        // get the inputs for each test in a format that simulate() understands
+        char *inputs = malloc((tb->uut->_inputc)*3+1);    // <= 3 bytes per input: the value, a comma and a space
+
+        // get the value of each input for the particular test number (assuming that the bit we want is the first in each value - the values are only strs because the function to parse a str into a list of strs was already written, technically they should be chars)
+        for(int i=0; i<tb->uut->_inputc; i++) {
+            sprintf(inputs+(i*3), "%c, ", tb->values[i][test_no][0]);
+        }
+
+        // hack to remove the last comma
+        inputs[tb->uut->_inputc*3-2] = '\0';
+
+        fprintf(stderr, "inputs is [%s]\n", inputs);
+
+        // call simulate
+        simulate(tb->uut, inputs, tb->outs_display, fp);
+
+        // test is over, free the inputs
+        free(inputs);
+    }
+
     fclose(fp);
 
     return 0;
