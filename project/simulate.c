@@ -85,9 +85,23 @@ int main(int argc, char *argv[]) {
 
     parse_tb_from_file(tb, "testbench.txt", "r");
 
+    for (int i=0; i<tb->uut->_inputc; i++) {
+        fprintf(stderr, "values for %s: [ ", tb->uut->inputs[i]);
+    
+        for (int j=0; j<tb->v_c; j++) {
+            fprintf(stderr, "%s, ", tb->values[i][j]);
+        }
+
+        fprintf(stderr, " ]\n");
+    }
+
+    for(int i=0; i<tb->uut->_outputc; i++) {
+        fprintf(stderr, "output %s will be displayed: [%d]\n", tb->uut->outputs[i], tb->outs_display[i]);
+    }
+
 
     // cleanup
-    free(tb);
+    free_tb(tb);
     free_lib(gate_lib);
     free_lib(only);
     printf("Program executed successfully\n");
@@ -378,14 +392,8 @@ int parse_tb_from_file(Testbench *tb, char *filename, char *mode) {
                         tb->v_c = v_c;
                     }
 
-                    printf("found line that gives input named %s (index %d) the following values %s (%d in total)\n", name, in_index, vals, v_c);
-
                 }
-                
-                // we here when tb out has been found
-                // read the next lines that contain the outputs we wanna see
-            
-                fprintf(stderr, "broke\n");
+    
             } 
             
             if (starts_with(line, TESTBENCH_OUT)) {
@@ -402,8 +410,6 @@ int parse_tb_from_file(Testbench *tb, char *filename, char *mode) {
                         return GENERIC_ERROR;
                     }
 
-                    fprintf(stderr, "found line that indicates we should display output %d\n", out_index);
-
                     tb->outs_display[out_index] = 1;
 
                 }
@@ -415,20 +421,6 @@ int parse_tb_from_file(Testbench *tb, char *filename, char *mode) {
 
     free(line);
     fclose(fp);
-
-    for (int i=0; i<tb->uut->_inputc; i++) {
-        fprintf(stderr, "values for %s: [ ", tb->uut->inputs[i]);
-    
-        for (int j=0; j<tb->v_c; j++) {
-            fprintf(stderr, "%s, ", tb->values[i][j]);
-        }
-
-        fprintf(stderr, " ]\n");
-    }
-
-    for(int i=0; i<tb->uut->_outputc; i++) {
-        fprintf(stderr, "output %s will be displayed: [%d]\n", tb->uut->outputs[i], tb->outs_display[i]);
-    }
 
     return 0;
 }

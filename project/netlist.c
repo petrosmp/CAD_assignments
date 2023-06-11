@@ -512,6 +512,32 @@ void free_node(Node *n, int complete) {
     }
 }
 
+void free_tb(Testbench *tb) {
+
+    if (tb != NULL) {
+
+        // free the values
+        if (tb->values != NULL) {
+
+            for(int i=0; i<tb->uut->_inputc; i++) {
+                free_str_list(tb->values[i], tb->v_c);
+            }
+
+            free(tb->values);
+        }
+
+        // free the output display list
+        if (tb->outs_display != NULL) {
+            free(tb->outs_display);
+        }
+
+        // free the tb itself
+        free(tb);
+
+    }
+
+}
+
 int add_to_lib(Netlist *lib, void* s, int is_standard, enum STANDARD_TYPE type) {
 
     if (lib==NULL || s==NULL) {

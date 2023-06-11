@@ -382,6 +382,17 @@ void free_standard(Standard *s);
 void free_node(Node *n, int complete);
 
 /**
+ * @brief Properly free up the memory occupied by the given testbench structure.
+ * 
+ * @note    Always free the UUT subsystem AFTER the testbench. This function
+ *          depends on the UUT's attributes to be able to do its job correctly, and
+ *          behavio if the UUT is free'd before this is called is undefined.
+ * 
+ * @param tb    A pointer to the memory that will be freed.
+ */
+void free_tb(Testbench *tb);
+
+/**
  * Add the given standard to (the end of) the given library.
  * 
  * Allocates memory for the new node that the standard will
