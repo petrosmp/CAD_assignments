@@ -841,7 +841,7 @@ int str_to_comp(char *str, Component *c, int n, Netlist *lib, Subsystem *s, int 
     c->id = atoi(_id);
 
     // check if the name of the component is a known one
-    Standard *std = search_in_lib(lib, _name);
+    Standard *std = find_in_lib(lib, _name);
     if (std == NULL) {
         printf("Could not find component '%s' in library %s\n", _name, lib->file);
         return UNKNOWN_COMP;
