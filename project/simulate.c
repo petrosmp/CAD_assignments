@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     char ch, *gate_lib_name = GATE_LIB_NAME, *input_file = INPUT_FILE, *output_file = OUTPUT_FILE, *subsys_name = SUBSYSTEM_NAME, *tb_file = TESTBENCH_FILE;
 
     // parse any (optional) arguments
-    while ((ch = getopt(argc, argv, "g:i:o:t")) != -1) {
+    while ((ch = getopt(argc, argv, "g:i:o:t:s:h")) != -1) {
 		switch (ch) {		
 			case 'g':
 				gate_lib_name = optarg;
@@ -33,6 +33,10 @@ int main(int argc, char *argv[]) {
 			case 't':
 				tb_file = optarg;
 				break;
+            case 's':
+                subsys_name = optarg;
+                break;
+            case 'h':
             default:
 				usage();
                 exit(0);
@@ -97,4 +101,5 @@ void usage() {
     printf("\t-i <filename>:\tuse the file with the given name as the input netlist (default %s)\n", INPUT_FILE);
     printf("\t-o <filename>:\twrite the output to a file with the given name (will be overwritten if it already exists) (default %s)\n", OUTPUT_FILE);
     printf("\t-t <filename>:\tuse the file with the given name as the testbench file (default %s)\n", TESTBENCH_FILE);
+    printf("\t-s <name>:\t\tfind and simulate the subsystem with the given name (must be contained in the specified netlist) (default %s)\n", SUBSYSTEM_NAME);
 }
